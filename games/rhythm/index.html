@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BEAT SLASHER — 모션캡쳐 리듬게임</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink:#07080D; --ink-2:#0E1119; --line:#1E2430;
+    --text:#E8ECF2; --dim:#697487;
+    --left:#00E5FF; --right:#FF2D95; --gold:#FFC64D; --bad:#FF3B30;
+    --display:'Chakra Petch','Pretendard',sans-serif;
+    --body:'Pretendard',system-ui,sans-serif;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{ background:var(--ink); color:var(--text); font-family:var(--body); overflow:hidden; -webkit-font-smoothing:antialiased; }
+
+  #stage{ position:fixed; inset:0; }
+  #game{ width:100%; height:100%; display:block; }
+  #cam{ display:none; }
+
+  .panel{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at 50% 40%, rgba(20,26,40,.92), rgba(7,8,13,.98));
+    backdrop-filter:blur(6px); z-index:10; padding:24px;
+  }
+  .panel.hidden{ display:none; }
+  .card{
+    width:min(980px,100%); max-height:92vh; overflow-y:auto;
+    display:grid; grid-template-columns:1.25fr .95fr;
+    border:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(14,17,25,.96), rgba(7,8,13,.96));
+  }
+  .card > section{ padding:34px; }
+  .card > section + section{ border-left:1px solid var(--line); }
+
+  .eyebrow{ font-family:var(--display); font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--dim); margin-bottom:14px; }
+  h1{ font-family:var(--display); font-size:clamp(36px,5vw,58px); font-weight:700; line-height:.92; }
+  h1 .l{ color:var(--left); } h1 .r{ color:var(--right); }
+  .tag{ margin-top:14px; color:var(--dim); font-size:14px; line-height:1.65; max-width:40ch; }
+
+  .field{ margin-top:22px; }
+  .field > label{ display:block; font-family:var(--display); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-bottom:8px; }
+  .file{ display:flex; align-items:center; gap:12px; border:1px dashed var(--line); background:rgba(255,255,255,.02); padding:13px 15px; cursor:pointer; transition:.18s; }
+  .file:hover{ border-color:var(--left); background:rgba(0,229,255,.05); }
+  .file input{ display:none; }
+  .file .name{ font-size:13.5px; }
+  .file .hint{ font-size:12px; color:var(--dim); margin-left:auto; }
+  .row{ display:flex; gap:12px; }
+  .row .field{ flex:1; }
+  input[type=number], input[type=text]{
+    width:100%; background:rgba(255,255,255,.03); border:1px solid var(--line);
+    color:var(--text); font-family:var(--display); font-size:16px; padding:11px 13px; outline:none;
+  }
+  input:focus{ border-color:var(--left); }
+  .seg{ display:flex; border:1px solid var(--line); }
+  .seg button{
+    flex:1; padding:11px 6px; background:transparent; border:0; cursor:pointer; color:var(--dim);
+    font-family:var(--display); font-size:12px; letter-spacing:.1em; text-transform:uppercase; transition:.16s;
+  }
+  .seg button + button{ border-left:1px solid var(--line); }
+  .seg button[aria-pressed="true"]{ background:var(--text); color:var(--ink); }
+  .start{
+    margin-top:26px; width:100%; padding:17px; border:0; cursor:pointer;
+    background:var(--text); color:var(--ink);
+    font-family:var(--display); font-weight:700; font-size:15px; letter-spacing:.18em; text-transform:uppercase; transition:.16s;
+  }
+  .start:hover{ background:var(--left); }
+  .start:disabled{ background:var(--line); color:var(--dim); cursor:not-allowed; }
+  .ghost{ background:transparent; border:1px solid var(--line); color:var(--text); }
+  .ghost:hover{ background:rgba(255,255,255,.06); }
+  .status{ margin-top:12px; font-size:12.5px; color:var(--dim); min-height:18px; line-height:1.6; }
+  .status.err{ color:var(--right); }
+  .status.warn{ color:var(--gold); }
+
+  /* 곡 목록 */
+  .songs{ border:1px solid var(--line); max-height:190px; overflow-y:auto; }
+  .songs .s{
+    display:flex; align-items:center; gap:11px; padding:11px 13px; cursor:pointer;
+    border-bottom:1px solid rgba(30,36,48,.6); font-size:13.5px; transition:background .14s;
+  }
+  .songs .s:last-child{ border-bottom:0; }
+  .songs .s:hover{ background:rgba(255,255,255,.03); }
+  .songs .s[aria-selected="true"]{ background:rgba(0,229,255,.09); }
+  .songs .s .pip{ width:9px; height:9px; border-radius:50%; border:1px solid var(--dim); flex:none; }
+  .songs .s[aria-selected="true"] .pip{ background:var(--left); border-color:var(--left); }
+  .songs .s .nm{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .songs .s .du{ font-family:var(--display); font-size:12px; color:var(--dim); }
+  .songs .s .del{ background:none; border:0; color:var(--dim); cursor:pointer; font-size:16px; line-height:1; padding:0 2px; }
+  .songs .s .del:hover{ color:var(--bad); }
+
+  .swatches{ display:flex; gap:10px; margin-top:10px; }
+  .sw{ flex:1; display:flex; align-items:center; gap:10px; border:1px solid var(--line); padding:11px 13px; font-size:13px; }
+  .sw .dot{ width:16px; height:16px; border-radius:50%; background:var(--line); flex:none; }
+  .sw .txt small{ display:block; color:var(--dim); font-size:11px; margin-top:2px; }
+  .calRow{ display:flex; gap:10px; margin-top:10px; }
+  .calRow button{ margin-top:0; padding:12px 10px; flex:1; font-size:12px; }
+
+  .rank-head{ display:flex; align-items:baseline; justify-content:space-between; padding-bottom:12px; border-bottom:1px solid var(--line); }
+  .rank-head h2{ font-family:var(--display); font-size:13px; letter-spacing:.24em; text-transform:uppercase; font-weight:600; }
+  .rank-head .clear{ background:none; border:0; color:var(--dim); cursor:pointer; font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-family:var(--display); }
+  .rank-head .clear:hover{ color:var(--right); }
+  ol.rank{ list-style:none; margin-top:6px; }
+  ol.rank li{ display:grid; grid-template-columns:26px 1fr auto; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid rgba(30,36,48,.55); }
+  ol.rank .n{ font-family:var(--display); font-size:13px; color:var(--dim); }
+  ol.rank li:nth-child(1) .n{ color:var(--gold); }
+  ol.rank .who{ font-size:14px; }
+  ol.rank .who small{ display:block; color:var(--dim); font-size:11px; margin-top:2px; }
+  ol.rank .pts{ font-family:var(--display); font-size:16px; font-weight:600; }
+  ol.rank li:nth-child(1) .pts{ color:var(--gold); }
+  .rank-empty{ color:var(--dim); font-size:13px; padding:26px 0; line-height:1.7; }
+
+  .result-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-top:22px; }
+  .result-grid div{ background:var(--ink-2); padding:16px 14px; }
+  .result-grid .k{ font-family:var(--display); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--dim); }
+  .result-grid .v{ font-family:var(--display); font-size:24px; font-weight:600; margin-top:5px; }
+  .bigscore{ font-family:var(--display); font-weight:700; font-size:clamp(52px,8vw,82px); line-height:1; margin-top:6px; }
+
+  .hud{ position:fixed; z-index:5; pointer-events:none; font-family:var(--display); }
+  #hudScore{ top:26px; left:32px; }
+  #hudScore .k{ font-size:10px; letter-spacing:.22em; color:var(--dim); text-transform:uppercase; }
+  #hudScore .v{ font-size:44px; font-weight:700; line-height:1.05; }
+  #hudAcc{ top:26px; right:32px; text-align:right; }
+  #hudAcc .v{ font-size:26px; font-weight:600; }
+  #hudAcc .k{ font-size:10px; letter-spacing:.22em; color:var(--dim); text-transform:uppercase; }
+  #progress{ position:fixed; top:0; left:0; height:2px; width:0%; background:linear-gradient(90deg,var(--left),var(--right)); z-index:6; }
+  #warn{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%); z-index:6;
+    padding:10px 18px; border:1px solid var(--right); background:rgba(255,45,149,.12);
+    font-size:13px; display:none;
+  }
+  #warn.on{ display:block; }
+
+  #tune{
+    position:fixed; right:0; top:50%; transform:translate(100%,-50%); z-index:7; width:300px;
+    background:rgba(7,8,13,.96); border:1px solid var(--line); border-right:0; padding:22px;
+    transition:transform .25s ease; max-height:90vh; overflow-y:auto;
+  }
+  #tune.open{ transform:translate(0,-50%); }
+  #tune h3{ font-family:var(--display); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--dim); margin:0 0 16px; }
+  #tune h3.sep{ border-top:1px solid var(--line); padding-top:18px; margin-top:4px; }
+  #tune .t{ margin-bottom:18px; }
+  #tune .t label{ display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:7px; }
+  #tune .t label b{ font-family:var(--display); font-weight:600; }
+  #tune .t p, #tune .note{ font-size:11px; color:var(--dim); margin-top:6px; line-height:1.5; }
+  input[type=range]{ width:100%; accent-color:var(--left); }
+  .check{ display:flex; align-items:center; gap:9px; font-size:12.5px; cursor:pointer; margin-top:10px; }
+  .check input{ accent-color:var(--left); }
+  .tuneTab{
+    position:fixed; right:0; top:50%; transform:translateY(-50%); z-index:6; writing-mode:vertical-rl;
+    background:var(--ink-2); border:1px solid var(--line); border-right:0; color:var(--dim);
+    padding:14px 7px; cursor:pointer; font-family:var(--display); font-size:10px; letter-spacing:.2em; text-transform:uppercase;
+  }
+  .tuneTab:hover{ color:var(--text); }
+  .kbd{ display:inline-block; padding:2px 6px; border:1px solid var(--line); border-radius:3px; font-family:var(--display); font-size:11px; color:var(--dim); }
+
+  /* 보정 오버레이 (수동/자동 공용) */
+  .overlay{ position:fixed; inset:0; z-index:11; display:none; }
+  .overlay.on{ display:block; }
+  #cal{ cursor:crosshair; }
+  .bar{
+    position:absolute; left:50%; bottom:34px; transform:translateX(-50%);
+    width:min(780px, calc(100% - 40px));
+    background:rgba(7,8,13,.94); border:1px solid var(--line); padding:22px 24px; cursor:default;
+  }
+  .bar .step{ font-family:var(--display); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--dim); }
+  .bar .say{ font-size:18px; margin-top:8px; line-height:1.5; }
+  .bar .sub{ font-size:12.5px; color:var(--dim); margin-top:8px; line-height:1.6; }
+  .bar .sub.bad{ color:var(--gold); }
+  .bar .acts{ display:flex; gap:10px; margin-top:18px; align-items:center; }
+  .bar .acts button{ margin-top:0; padding:13px 20px; width:auto; }
+  .bar .acts .spacer{ flex:1; }
+  .bar .acts .hint{ font-size:11.5px; color:var(--dim); }
+  .meter{ height:3px; background:var(--line); margin-top:16px; }
+  .meter i{ display:block; height:100%; width:0%; background:var(--left); transition:width .1s linear; }
+  #calRing{ position:absolute; width:70px; height:70px; border:2px solid #fff; border-radius:50%; transform:translate(-50%,-50%); pointer-events:none; display:none; }
+
+  @media (max-width:820px){
+    .card{ grid-template-columns:1fr; }
+    .card > section + section{ border-left:0; border-top:1px solid var(--line); }
+  }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <video id="cam" playsinline autoplay muted></video>
+  <canvas id="game"></canvas>
+</div>
+
+<div id="progress"></div>
+<div class="hud" id="hudScore" style="display:none">
+  <div class="k">Score</div><div class="v" id="scoreVal">0</div>
+  <div class="v" id="comboVal" style="font-size:20px;color:var(--dim)">—</div>
+</div>
+<div class="hud" id="hudAcc" style="display:none">
+  <div class="k">Accuracy</div><div class="v" id="accVal">100%</div>
+</div>
+<div id="warn"></div>
+
+<button class="tuneTab" id="tuneTab" style="display:none">Tune · S</button>
+<div id="tune">
+  <h3>플레이 보정</h3>
+  <div class="t">
+    <label>싱크 오프셋 <b id="offLbl">0 ms</b></label>
+    <input type="range" id="offset" min="-300" max="300" step="10" value="0">
+    <p>노트가 음악보다 늦게 느껴지면 왼쪽(−)으로.</p>
+  </div>
+  <div class="t">
+    <label>스윙 감도 <b id="sensLbl">0.45</b></label>
+    <input type="range" id="sens" min="0.15" max="1.1" step="0.05" value="0.45">
+  </div>
+  <div class="t">
+    <label>판정 범위 <b id="radLbl">보통</b></label>
+    <input type="range" id="rad" min="0.06" max="0.14" step="0.01" value="0.09">
+  </div>
+  <label class="check"><input type="checkbox" id="dirCheck" checked> 화살표 방향 판정</label>
+  <p class="note">끄면 방향 무시 — 훨씬 쉬워집니다.</p>
+
+  <h3 class="sep" id="trackHead">인식 보정</h3>
+  <div id="colorTunes">
+    <div class="t">
+      <label>색 허용 범위 <b id="hueLbl">20°</b></label>
+      <input type="range" id="hueTol" min="8" max="45" step="1" value="20">
+    </div>
+    <div class="t">
+      <label>최소 채도 <b id="satLbl">0.45</b></label>
+      <input type="range" id="satMin" min="0.15" max="0.8" step="0.05" value="0.45">
+      <p><b>피부·벽이 잡히면 여기를 올리세요.</b></p>
+    </div>
+    <div class="t">
+      <label>최소 크기 <b id="pixLbl">12 px</b></label>
+      <input type="range" id="minPix" min="4" max="60" step="2" value="12">
+    </div>
+    <label class="check"><input type="checkbox" id="headMask" checked> 얼굴 영역 제외</label>
+    <label class="check"><input type="checkbox" id="showMask"> 인식 영역 보기</label>
+    <p class="note">선택된 도구는 <b>진하게</b>, 무시된 후보는 회색, 제외된 얼굴은 붉게 표시됩니다.</p>
+  </div>
+</div>
+
+<!-- 자동 보정 -->
+<div class="overlay" id="auto">
+  <div class="bar">
+    <div class="step" id="acStep">자동 보정</div>
+    <div class="say" id="acSay">양손에 도구를 들고, 카메라에서 2~3m 떨어져 서세요.</div>
+    <div class="sub" id="acSub">파랑·초록·보라 계열 도구를 쓰세요. 빨강·주황·분홍은 피부색과 겹쳐 자동 보정이 실패합니다.</div>
+    <div class="meter"><i id="acMeter"></i></div>
+    <div class="acts">
+      <button class="start ghost" id="acRedo">다시</button>
+      <span class="hint" id="acHint"></span>
+      <span class="spacer"></span>
+      <button class="start ghost" id="acCancel">취소</button>
+      <button class="start" id="acDone" disabled>완료</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수동 보정 -->
+<div class="overlay" id="cal">
+  <div id="calRing"></div>
+  <div class="bar">
+    <div class="step" id="calStep">Step 1 / 2</div>
+    <div class="say" id="calSay">왼손에 든 도구를 카메라에 비추고, <b>화면에서 그 도구를 클릭</b>하세요.</div>
+    <div class="sub" id="calSub">파랑·초록·보라·청록 계열을 쓰세요. 빨강·주황·분홍은 피부색과 같은 계열이라 얼굴과 팔이 함께 잡힙니다.</div>
+    <div class="acts">
+      <button class="start ghost" id="calRedo">다시 잡기</button>
+      <span class="hint" id="calHint"></span>
+      <span class="spacer"></span>
+      <button class="start ghost" id="calCancel">취소</button>
+      <button class="start" id="calDone" disabled>완료</button>
+    </div>
+  </div>
+</div>
+
+<!-- 시작 -->
+<div class="panel" id="menu">
+  <div class="card">
+    <section>
+      <div class="eyebrow">Motion Capture · Webcam</div>
+      <h1>BEAT<br><span class="l">SLA</span><span class="r">SHER</span></h1>
+      <p class="tag">큐브가 정면에서 날아옵니다. 화살표 방향대로 칼날을 그어 베세요.</p>
+
+      <div class="field">
+        <label>인식 방식</label>
+        <div class="seg" id="mode">
+          <button data-m="color" aria-pressed="true">도구 · 색 지정</button>
+          <button data-m="pose">맨손 · 자동</button>
+        </div>
+        <div class="swatches" id="swWrap">
+          <div class="sw"><span class="dot" id="swL"></span><span class="txt">왼손 도구<small id="swLt">미지정</small></span></div>
+          <div class="sw"><span class="dot" id="swR"></span><span class="txt">오른손 도구<small id="swRt">미지정</small></span></div>
+        </div>
+        <div class="calRow" id="calRow">
+          <button class="start" id="autoBtn">자동 보정</button>
+          <button class="start ghost" id="calBtn">직접 클릭해서 잡기</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>곡</label>
+        <div class="songs" id="songList"></div>
+        <label class="file" style="margin-top:10px">
+          <input type="file" id="song" accept="audio/*" multiple>
+          <span class="name">곡 추가 — 브라우저에 저장되어 다음에도 남습니다</span>
+          <span class="hint">여러 개 가능</span>
+        </label>
+      </div>
+
+      <div class="row">
+        <div class="field"><label>시작 지점 (초)</label><input type="number" id="segStart" value="0" min="0" step="1"></div>
+        <div class="field"><label>길이 (초)</label><input type="number" id="segDur" value="45" min="15" max="180" step="5"></div>
+      </div>
+
+      <div class="field">
+        <label>난이도</label>
+        <div class="seg" id="diff">
+          <button data-gap="0.42" data-k="2.0" data-dir="0" data-bomb="0">쉬움</button>
+          <button data-gap="0.30" data-k="1.5" data-dir="0.6" data-bomb="0" aria-pressed="true">보통</button>
+          <button data-gap="0.21" data-k="1.1" data-dir="0.85" data-bomb="0.08">어려움</button>
+        </div>
+      </div>
+
+      <button class="start" id="startBtn">시작</button>
+      <div class="status" id="status">카메라를 준비하는 중…</div>
+    </section>
+
+    <section>
+      <div class="rank-head">
+        <h2>오늘의 기록</h2>
+        <button class="clear" id="clearRank">초기화</button>
+      </div>
+      <ol class="rank" id="rankList"></ol>
+      <div class="rank-empty" id="rankEmpty">아직 아무도 안 베었습니다.<br>첫 기록의 주인공이 되세요.</div>
+    </section>
+  </div>
+</div>
+
+<!-- 결과 -->
+<div class="panel hidden" id="result">
+  <div class="card">
+    <section>
+      <div class="eyebrow">Result</div>
+      <div class="bigscore" id="rScore">0</div>
+      <div class="result-grid">
+        <div><div class="k">Perfect</div><div class="v" style="color:var(--left)" id="rPerfect">0</div></div>
+        <div><div class="k">Good</div><div class="v" id="rGood">0</div></div>
+        <div><div class="k">Miss</div><div class="v" style="color:var(--right)" id="rMiss">0</div></div>
+        <div><div class="k">Max Combo</div><div class="v" id="rCombo">0</div></div>
+        <div><div class="k">Accuracy</div><div class="v" id="rAcc">0%</div></div>
+        <div><div class="k">Rank</div><div class="v" style="color:var(--gold)" id="rGrade">—</div></div>
+      </div>
+      <div class="field">
+        <label>이름 (기록 등록)</label>
+        <input type="text" id="playerName" maxlength="10" placeholder="학번 이름" autocomplete="off">
+      </div>
+      <div class="row" style="margin-top:20px">
+        <button class="start" id="saveBtn" style="margin-top:0">기록 등록</button>
+        <button class="start ghost" id="againBtn" style="margin-top:0">다시</button>
+      </div>
+      <div class="status">다음 사람 <span class="kbd">Space</span></div>
+    </section>
+    <section>
+      <div class="rank-head"><h2>오늘의 기록</h2></div>
+      <ol class="rank" id="rankList2"></ol>
+    </section>
+  </div>
+</div>
+
+<script src="../../hub-sdk.js"></script>
+<script type="module">
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+const $ = id => document.getElementById(id);
+const canvas = $('game'), ctx = canvas.getContext('2d');
+const video  = $('cam');
+
+const S = {
+  screen:'menu',            // menu | autocal | cal | ready | play | result
+  mode:'color', landmarker:null,
+  target:{L:null,R:null}, colors:{L:'#00E5FF',R:'#FF2D95'},
+  track:{L:{found:false},R:{found:false}},
+  blade:{L:null,R:null}, bvec:{L:null,R:null},
+  swing:{L:{x:0,y:0},R:{x:0,y:0}}, vel:{L:0,R:0},
+
+  hueTol:20, satMin:0.45, minPix:12,
+  useHeadMask:true, showMask:false, dirCheck:true,
+
+  songId:'demo', songs:[], bufCache:new Map(),
+  notes:[], score:0, combo:0, maxCombo:0, perfect:0, good:0, miss:0,
+  audio:null, actx:null, source:null, startedAt:0,
+  segStart:0, segDur:45, offset:0, sens:0.45, rad:0.09,
+  diff:{ gap:0.30, k:1.5, dir:0.6, bomb:0 },
+  fx:[], shards:[], lastSeen:0, calStep:0,
+
+  ready:{ okSince:0, countStart:0, since:0, lastBeep:-1 },
+  ac:{ phase:'wait', since:0, hist:null, maxVel:0 },
+};
+
+function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+addEventListener('resize', resize); resize();
+
+/* =========================================================
+   IndexedDB — 곡 보관함
+   ========================================================= */
+let db = null;
+function openDB(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('beatslasher', 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if(!d.objectStoreNames.contains('songs'))  d.createObjectStore('songs',  { keyPath:'id' });
+      if(!d.objectStoreNames.contains('charts')) d.createObjectStore('charts', { keyPath:'key' });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror   = () => rej(r.error);
+  });
+}
+const req = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const store = (name, mode='readonly') => db.transaction(name, mode).objectStore(name);
+
+async function listSongs(){ return db ? await req(store('songs').getAll()) : []; }
+async function putSong(rec){ await req(store('songs','readwrite').put(rec)); }
+async function delSong(id){ await req(store('songs','readwrite').delete(id)); }
+async function getChart(key){ try{ return await req(store('charts').get(key)); }catch(e){ return null; } }
+async function putChart(key, times){ try{ await req(store('charts','readwrite').put({key, times})); }catch(e){} }
+
+/** 저장된 곡 → AudioBuffer (한 번 디코드하면 메모리에 캐시) */
+async function loadBuffer(rec){
+  if(S.bufCache.has(rec.id)) return S.bufCache.get(rec.id);
+  const buf = await getCtx().decodeAudioData(await rec.blob.arrayBuffer());
+  S.bufCache.set(rec.id, buf);
+  return buf;
+}
+
+async function refreshSongs(){
+  S.songs = (await listSongs()).sort((a,b)=> a.addedAt - b.addedAt);
+  const el = $('songList');
+  const rows = [`
+    <div class="s" data-id="demo" aria-selected="${S.songId==='demo'}">
+      <span class="pip"></span><span class="nm">데모 비트 — 파일 없이 테스트</span><span class="du">124 BPM</span>
+    </div>`];
+  for(const s of S.songs){
+    rows.push(`
+      <div class="s" data-id="${s.id}" aria-selected="${S.songId===s.id}">
+        <span class="pip"></span>
+        <span class="nm">${esc(s.name)}</span>
+        <span class="du">${fmt(s.dur)}</span>
+        <button class="del" data-del="${s.id}" title="삭제">×</button>
+      </div>`);
+  }
+  el.innerHTML = rows.join('');
+  syncSegInputs();
+}
+const fmt = d => `${Math.floor(d/60)}:${String(Math.floor(d%60)).padStart(2,'0')}`;
+
+function currentSong(){ return S.songs.find(s => s.id === S.songId) || null; }
+function syncSegInputs(){
+  const s = currentSong();
+  $('segStart').value = s ? s.segStart : 0;
+  $('segDur').value   = s ? s.segDur   : 45;
+}
+
+/* =========================================================
+   픽셀 버퍼 & 색 추적
+   ========================================================= */
+const SW=160, SH=90, NP=SW*SH;
+const small = document.createElement('canvas'); small.width=SW; small.height=SH;
+const sctx = small.getContext('2d',{ willReadFrequently:true });
+const maskCv = document.createElement('canvas'); maskCv.width=SW; maskCv.height=SH;
+const mctx = maskCv.getContext('2d');
+
+const Hh=new Float32Array(NP), Ss=new Float32Array(NP), Vv=new Float32Array(NP);
+const head=new Uint8Array(NP);
+const lab={ L:new Int32Array(NP), R:new Int32Array(NP) };
+const stack=new Int32Array(NP);
+const chosen={ L:0, R:0 };
+
+function grabSmall(){
+  sctx.save(); sctx.scale(-1,1); sctx.translate(-SW,0);
+  sctx.drawImage(video,0,0,SW,SH);
+  sctx.restore();
+  return sctx.getImageData(0,0,SW,SH);
+}
+function toHSV(img){
+  const d=img.data;
+  for(let p=0,i=0; p<NP; p++,i+=4){
+    const r=d[i]/255, g=d[i+1]/255, b=d[i+2]/255;
+    const mx=Math.max(r,g,b), mn=Math.min(r,g,b), df=mx-mn;
+    let h=0;
+    if(df){
+      if(mx===r) h=((g-b)/df)%6;
+      else if(mx===g) h=(b-r)/df+2;
+      else h=(r-g)/df+4;
+      h*=60; if(h<0) h+=360;
+    }
+    Hh[p]=h; Ss[p]= mx ? df/mx : 0; Vv[p]=mx;
+  }
+}
+const hueDist=(a,b)=>{ const d=Math.abs(a-b)%360; return d>180?360-d:d; };
+const isSkinHue = h => (h < 45 || h > 335);
+function hsv2hex(h,s){
+  s=Math.max(0.75,s);
+  const v=1,c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c;
+  let r,g,b;
+  if(h<60)[r,g,b]=[c,x,0]; else if(h<120)[r,g,b]=[x,c,0];
+  else if(h<180)[r,g,b]=[0,c,x]; else if(h<240)[r,g,b]=[0,x,c];
+  else if(h<300)[r,g,b]=[x,0,c]; else [r,g,b]=[c,0,x];
+  const f=n=>Math.round((n+m)*255).toString(16).padStart(2,'0');
+  return '#'+f(r)+f(g)+f(b);
+}
+
+function buildHead(lm){
+  head.fill(0);
+  if(!lm || !lm[0]) return;
+  const nx=(1-lm[0].x)*SW, ny=lm[0].y*SH;
+  let r=9;
+  if(lm[7] && lm[8]){
+    const dx=(lm[7].x-lm[8].x)*SW, dy=(lm[7].y-lm[8].y)*SH;
+    r = Math.max(8, Math.hypot(dx,dy)*1.45);
+  }
+  const r2=r*r;
+  for(let y=Math.max(0,(ny-r)|0); y<Math.min(SH,(ny+r*1.2)|0+1); y++)
+    for(let x=Math.max(0,(nx-r)|0); x<Math.min(SW,(nx+r)|0+1); x++){
+      const dx=x-nx, dy=(y-ny)/1.2;
+      if(dx*dx+dy*dy<r2) head[y*SW+x]=1;
+    }
+}
+
+function findBlobs(target, L){
+  L.fill(0);
+  if(!target) return [];
+  const satFloor = Math.max(S.satMin, target.s*0.55);
+  const blobs=[]; let cur=0;
+  const ok = p => !head[p] && Ss[p]>=satFloor && Vv[p]>=0.20 && hueDist(Hh[p], target.h)<=S.hueTol;
+
+  for(let p0=0; p0<NP; p0++){
+    if(L[p0] || !ok(p0)) continue;
+    cur++;
+    let sp=0; stack[sp++]=p0; L[p0]=cur;
+    let n=0,sx=0,sy=0,sxx=0,syy=0,sxy=0;
+    while(sp>0){
+      const q=stack[--sp], x=q%SW, y=(q/SW)|0;
+      n++; sx+=x; sy+=y; sxx+=x*x; syy+=y*y; sxy+=x*y;
+      for(let dy=-1;dy<=1;dy++){
+        const ny=y+dy; if(ny<0||ny>=SH) continue;
+        for(let dx=-1;dx<=1;dx++){
+          if(!dx&&!dy) continue;
+          const nx=x+dx; if(nx<0||nx>=SW) continue;
+          const r=ny*SW+nx;
+          if(!L[r] && ok(r)){ L[r]=cur; stack[sp++]=r; }
+        }
+      }
+    }
+    if(n < S.minPix) continue;
+    const mx=sx/n, my=sy/n;
+    const cxx=sxx/n-mx*mx, cyy=syy/n-my*my, cxy=sxy/n-mx*my;
+    const tmp=Math.sqrt(4*cxy*cxy+(cxx-cyy)*(cxx-cyy));
+    const l1=(cxx+cyy+tmp)/2, l2=Math.max(1e-6,(cxx+cyy-tmp)/2);
+    let ex=cxy, ey=l1-cxx;
+    if(Math.abs(ex)<1e-6 && Math.abs(ey)<1e-6){ ex=1; ey=0; }
+    const m=Math.hypot(ex,ey); ex/=m; ey/=m;
+    blobs.push({ id:cur, n, mx, my, ex, ey, elong:l1/l2, axis:Math.sqrt(l1) });
+  }
+  return blobs;
+}
+function pickBlob(blobs, prev){
+  let best=null, bs=-1;
+  for(const b of blobs){
+    const area=Math.sqrt(b.n), shape=1+Math.min(b.elong,8)*0.35;
+    let near=1;
+    if(prev && prev.found){
+      const d=Math.hypot(b.mx-prev.sx, b.my-prev.sy);
+      near = 0.45 + 1.15/(1 + d/(SW*0.20));
+    }
+    const sc=area*shape*near;
+    if(sc>bs){ bs=sc; best=b; }
+  }
+  if(!best) return { found:false };
+  return { found:true, id:best.id, sx:Math.round(best.mx), sy:Math.round(best.my),
+           n:best.n, ex:best.ex, ey:best.ey, elong:best.elong, axis:best.axis };
+}
+function samplePatch(cx,cy){
+  let vx=0,vy=0,ss=0,sv=0,n=0;
+  for(let dy=-3;dy<=3;dy++) for(let dx=-3;dx<=3;dx++){
+    const x=cx+dx, y=cy+dy;
+    if(x<0||y<0||x>=SW||y>=SH) continue;
+    const p=y*SW+x;
+    vx+=Math.cos(Hh[p]*Math.PI/180); vy+=Math.sin(Hh[p]*Math.PI/180);
+    ss+=Ss[p]; sv+=Vv[p]; n++;
+  }
+  let h=Math.atan2(vy/n,vx/n)*180/Math.PI; if(h<0) h+=360;
+  return { h, s:ss/n, v:sv/n };
+}
+function drawMask(W,H){
+  const out=mctx.createImageData(SW,SH), o=out.data;
+  for(const h of ['L','R']){
+    const L=lab[h], id=chosen[h];
+    const c = h==='L' ? [0,229,255] : [255,45,149];
+    for(let p=0;p<NP;p++){
+      if(!L[p]) continue;
+      const i=p*4;
+      if(L[p]===id){ o[i]=c[0]; o[i+1]=c[1]; o[i+2]=c[2]; o[i+3]=190; }
+      else { o[i]=120; o[i+1]=126; o[i+2]=136; o[i+3]=110; }
+    }
+  }
+  for(let p=0;p<NP;p++){
+    if(head[p] && !o[p*4+3]){ const i=p*4; o[i]=255; o[i+1]=59; o[i+2]=48; o[i+3]=55; }
+  }
+  mctx.putImageData(out,0,0);
+  ctx.save(); ctx.imageSmoothingEnabled=false; ctx.globalAlpha=0.8;
+  ctx.drawImage(maskCv,0,0,W,H); ctx.restore();
+}
+
+/* =========================================================
+   카메라 + 모델
+   ========================================================= */
+async function initVision(){
+  const st=$('status');
+  try{
+    st.textContent='카메라 권한을 허용해 주세요.';
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{ width:{ideal:1280}, height:{ideal:720}, facingMode:'user' }, audio:false });
+    video.srcObject=stream; await video.play();
+
+    st.textContent='모델을 내려받는 중…';
+    const fs = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    S.landmarker = await PoseLandmarker.createFromOptions(fs, {
+      baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task", delegate:"GPU" },
+      runningMode:"VIDEO", numPoses:1 });
+
+    try{ db = await openDB(); await refreshSongs(); }
+    catch(e){ console.warn('보관함을 열 수 없습니다', e); }
+
+    restoreSetup();
+    updateModeUI();
+    requestAnimationFrame(loop);
+    Hub.ready();
+  }catch(e){
+    console.error(e);
+    st.className='status err';
+    st.textContent='카메라/모델 로드 실패: '+e.message+' — http://localhost 로 열었는지 확인하세요.';
+    Hub.ready();
+  }
+}
+
+/* =========================================================
+   오디오
+   ========================================================= */
+function getCtx(){ if(!S.actx) S.actx=new (window.AudioContext||window.webkitAudioContext)(); return S.actx; }
+function sfx(kind){
+  const a=S.actx; if(!a) return;
+  const t=a.currentTime;
+  if(kind==='cut'){
+    const sr=a.sampleRate, buf=a.createBuffer(1,sr*0.09,sr), d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(sr*0.018));
+    const src=a.createBufferSource(); src.buffer=buf;
+    const bp=a.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=2600; bp.Q.value=1.1;
+    const g=a.createGain(); g.gain.value=0.35;
+    src.connect(bp).connect(g).connect(a.destination); src.start(t);
+  }else if(kind==='bomb'){
+    const o=a.createOscillator(), g=a.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(160,t);
+    o.frequency.exponentialRampToValueAtTime(40,t+0.25);
+    g.gain.setValueAtTime(0.3,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.28);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t+0.3);
+  }else{ // tick / go
+    const o=a.createOscillator(), g=a.createGain();
+    o.type='triangle';
+    o.frequency.value = kind==='go' ? 880 : 520;
+    g.gain.setValueAtTime(0.25,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t+0.2);
+  }
+}
+function makeDemoBuffer(sec=60,bpm=124){
+  const a=getCtx(), sr=a.sampleRate;
+  const buf=a.createBuffer(1,sr*sec,sr), d=buf.getChannelData(0), beat=60/bpm;
+  for(let b=0; b*beat<sec; b++){
+    const st=Math.floor(b*beat*sr);
+    for(let i=0;i<sr*0.14;i++){ const t=i/sr, f=120*Math.exp(-t*22)+45;
+      d[st+i]+=Math.sin(2*Math.PI*f*t)*Math.exp(-t*16)*0.7; }
+    const h=Math.floor((b*beat+beat/2)*sr);
+    for(let i=0;i<sr*0.04;i++){ if(h+i>=d.length) break;
+      d[h+i]+=(Math.random()*2-1)*Math.exp(-i/(sr*0.006))*0.22; }
+  }
+  return buf;
+}
+function demoChart(st,dur,bpm=124){
+  const beat=60/bpm, out=[], step=S.diff.gap<0.25?beat/2:beat;
+  for(let t=0;t<dur;t+=step) out.push(st+t);
+  return out;
+}
+function detectOnsets(buffer,st,dur,gap,k){
+  const sr=buffer.sampleRate, ch=buffer.getChannelData(0);
+  const from=Math.max(1,Math.floor(st*sr)), to=Math.min(ch.length,Math.floor((st+dur)*sr));
+  const hop=512, env=[];
+  for(let i=from;i+hop<to;i+=hop){
+    let e=0; for(let j=i;j<i+hop;j++){ const df=ch[j]-ch[j-1]; e+=df*df; }
+    env.push(Math.sqrt(e/hop));
+  }
+  if(env.length<8) return [];
+  const flux=env.map((v,i)=> i?Math.max(0,v-env[i-1]):0);
+  const W=24, minGap=Math.round(gap*sr/hop), on=[]; let last=-1e9;
+  for(let i=1;i<flux.length-1;i++){
+    const a=Math.max(0,i-W), b=Math.min(flux.length,i+W);
+    let m=0; for(let j=a;j<b;j++) m+=flux[j]; m/=(b-a);
+    if(flux[i]>flux[i-1] && flux[i]>=flux[i+1] && flux[i]>m*k && flux[i]>1e-4 && i-last>=minGap){
+      on.push(st+(i*hop)/sr); last=i;
+    }
+  }
+  if(on.length < dur/2){ const est=[]; for(let t=0;t<dur;t+=gap*1.6) est.push(st+t); return est; }
+  return on;
+}
+
+const COLX=[-1,-0.34,0.34,1], ROWY=[-1,0,0.95];
+const DIRS={ up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
+const LEADIN = 1.6;   // 곡 시작 후 이 시간 안의 노트는 버린다 (숨 돌릴 틈)
+
+function buildNotes(times){
+  const notes=[]; let prev='R', lastBy={L:-9,R:-9};
+  const keys=['up','down','left','right'];
+  for(const t of times){
+    if(t < S.segStart + LEADIN) continue;
+    if(S.diff.bomb && Math.random()<S.diff.bomb && t-Math.max(lastBy.L,lastBy.R)>0.4){
+      notes.push({ t, bomb:true, col:(Math.random()*4)|0, row:(Math.random()*3)|0, dead:false, judged:false });
+      continue;
+    }
+    let hand = Math.random()<0.78 ? (prev==='L'?'R':'L') : prev;
+    if(t-lastBy[hand]<0.16) hand = hand==='L'?'R':'L';
+    if(t-lastBy[hand]<0.10) continue;
+    const col = hand==='L' ? (Math.random()*3)|0 : 1+((Math.random()*3)|0);
+    const row = (Math.random()*3)|0;
+    const dir = Math.random()<S.diff.dir ? keys[(Math.random()*4)|0] : null;
+    notes.push({ t, hand, col, row, dir, bomb:false, dead:false, judged:false });
+    prev=hand; lastBy[hand]=t;
+  }
+  return notes;
+}
+
+/* =========================================================
+   준비 → 카운트다운 → 플레이
+   ========================================================= */
+async function prepareGame(){
+  const btn=$('startBtn'), st=$('status');
+  if(S.mode==='color' && (!S.target.L || !S.target.R)){
+    st.className='status err'; st.textContent='도구 색을 먼저 잡아주세요.';
+    return;
+  }
+  btn.disabled=true; st.className='status'; st.textContent='비트를 분석하는 중…';
+
+  const a=getCtx();
+  await Promise.race([a.resume(), new Promise(r=>setTimeout(r,400))]);
+  if(a.state!=='running'){ st.className='status warn'; st.textContent='소리가 막혀 있습니다. 화면을 한 번 클릭하거나 크롬을 자동재생 허용 옵션으로 실행하세요.'; }
+  const rec = currentSong();
+  S.segStart = Math.max(0, +$('segStart').value || 0);
+  S.segDur   = Math.min(180, Math.max(15, +$('segDur').value || 45));
+
+  let times;
+  if(!rec){
+    S.audio = makeDemoBuffer(S.segStart + S.segDur + 4);
+    times = demoChart(S.segStart, S.segDur);
+  }else{
+    try{ S.audio = await loadBuffer(rec); }
+    catch(e){ st.className='status err'; st.textContent='곡을 디코드하지 못했습니다.'; btn.disabled=false; return; }
+
+    const maxDur = S.audio.duration - S.segStart;
+    if(maxDur <= 6){ st.className='status err'; st.textContent='시작 지점이 곡 길이를 넘었습니다.'; btn.disabled=false; return; }
+    S.segDur = Math.min(S.segDur, maxDur);
+
+    rec.segStart = S.segStart; rec.segDur = S.segDur;
+    putSong(rec);
+
+    const key = `${rec.id}|${S.segStart}|${S.segDur}|${S.diff.gap}|${S.diff.k}`;
+    const hit = await getChart(key);
+    if(hit){ times = hit.times; }
+    else {
+      times = detectOnsets(S.audio, S.segStart, S.segDur, S.diff.gap, S.diff.k);
+      putChart(key, times);
+    }
+  }
+
+  S.notes = buildNotes(times);
+  if(!S.notes.length){
+    st.className='status err'; st.textContent='노트를 만들지 못했습니다. 다른 구간이나 난이도를 시도해 보세요.';
+    btn.disabled=false; return;
+  }
+  Object.assign(S,{ score:0, combo:0, maxCombo:0, perfect:0, good:0, miss:0, fx:[], shards:[] });
+
+  $('menu').classList.add('hidden');
+  S.ready = { okSince:0, countStart:0, since:performance.now(), lastBeep:-1 };
+  S.screen = 'ready';
+  btn.disabled = false;
+}
+
+function beginAudio(){
+  const a = S.actx;
+  const src = a.createBufferSource();
+  src.buffer = S.audio; src.connect(a.destination);
+  const when = a.currentTime + 0.05;
+  src.start(when, S.segStart, S.segDur);
+  src.onended = () => { if(S.screen==='play') endGame(); };
+  S.source = src; S.startedAt = when;
+
+  $('hudScore').style.display='block';
+  $('hudAcc').style.display='block';
+  $('tuneTab').style.display='block';
+  S.screen = 'play';
+}
+const songTime = () => (S.actx.currentTime - S.startedAt) + S.segStart + S.offset;
+
+function endGame(){
+  S.screen='result';
+  try{ S.source.stop(); }catch(e){}
+  $('hudScore').style.display='none'; $('hudAcc').style.display='none';
+  $('tuneTab').style.display='none'; $('tune').classList.remove('open');
+  $('progress').style.width='0%'; $('warn').classList.remove('on');
+
+  const total=S.perfect+S.good+S.miss;
+  const acc = total ? Math.round(((S.perfect+S.good*0.5)/total)*100) : 0;
+  const grade = acc>=95?'S':acc>=88?'A':acc>=75?'B':acc>=60?'C':'D';
+  $('rScore').textContent=S.score.toLocaleString();
+  $('rPerfect').textContent=S.perfect; $('rGood').textContent=S.good; $('rMiss').textContent=S.miss;
+  $('rCombo').textContent=S.maxCombo; $('rAcc').textContent=acc+'%'; $('rGrade').textContent=grade;
+  S.lastAcc=acc;
+  $('result').classList.remove('hidden');
+  $('playerName').value=''; $('playerName').focus();
+  renderRank();
+}
+function backToMenu(){
+  S.screen='menu';
+  $('result').classList.add('hidden'); $('menu').classList.remove('hidden');
+  $('status').className='status'; $('status').textContent='준비 완료. 다음 사람 들어오세요.';
+  renderRank();
+}
+function abortToMenu(){
+  try{ S.source && S.source.stop(); }catch(e){}
+  S.screen='menu';
+  $('hudScore').style.display='none'; $('hudAcc').style.display='none';
+  $('tuneTab').style.display='none';
+  $('menu').classList.remove('hidden');
+}
+
+/* =========================================================
+   루프
+   ========================================================= */
+let poseTick=0, lastVideoTime=-1, lastLm=null;
+const prevPt={L:null,R:null}, trailPts={L:[],R:[]};
+
+function loop(now){
+  requestAnimationFrame(loop);
+  const W=canvas.width, H=canvas.height;
+
+  ctx.save(); ctx.scale(-1,1); ctx.translate(-W,0);
+  if(video.readyState>=2) ctx.drawImage(video,0,0,W,H);
+  ctx.restore();
+  const dim = (S.screen==='cal'||S.screen==='autocal') ? 0.20 : 0.62;
+  ctx.fillStyle=`rgba(7,8,13,${dim})`; ctx.fillRect(0,0,W,H);
+
+  const ready = video.readyState>=2;
+  const colorActive = (S.mode==='color' && S.screen!=='menu') || S.screen==='cal' || S.screen==='autocal';
+  const needPose = S.mode==='pose' || S.screen==='autocal' || (S.useHeadMask && colorActive);
+  let pts=null, axes=null;
+
+  // --- 포즈 (자동보정은 매 프레임, 그 외엔 4프레임에 한 번) ---
+  if(ready && needPose && S.landmarker){
+    const every = (S.screen==='autocal' || S.mode==='pose') ? 1 : 4;
+    if((poseTick++ % every)===0 && video.currentTime !== lastVideoTime){
+      lastVideoTime = video.currentTime;
+      const res = S.landmarker.detectForVideo(video, now);
+      lastLm = (res.landmarks && res.landmarks.length) ? res.landmarks[0] : null;
+    }
+  }
+
+  // --- 색 추적 ---
+  if(ready && colorActive){
+    toHSV(grabSmall());
+    if(S.useHeadMask) buildHead(lastLm); else head.fill(0);
+
+    pts={}; axes={};
+    for(const h of ['L','R']){
+      const t = pickBlob(findBlobs(S.target[h], lab[h]), S.track[h]);
+      S.track[h]=t; chosen[h]= t.found ? t.id : 0;
+      if(!t.found) continue;
+      S.lastSeen=now;
+      pts[h]={ x:t.sx/SW*W, y:t.sy/SH*H };
+      if(t.elong>2.0) axes[h]={ x:t.ex*(W/SW), y:t.ey*(H/SH),
+        len: Math.min(H*0.34, Math.max(H*0.13, t.axis*2.6*(H/SH))) };
+    }
+    if(S.showMask && S.screen==='play') drawMask(W,H);
+  }
+  else if(ready && S.mode==='pose' && lastLm && S.screen!=='menu'){
+    pts={};
+    if((lastLm[15].visibility??1)>0.4) pts.L={ x:(1-lastLm[15].x)*W, y:lastLm[15].y*H };
+    if((lastLm[16].visibility??1)>0.4) pts.R={ x:(1-lastLm[16].x)*W, y:lastLm[16].y*H };
+    if(pts.L||pts.R) S.lastSeen=now;
+  }
+
+  // --- 속도 / 스윙 / 칼날 ---
+  if(pts){
+    for(const h of ['L','R']){
+      const p=pts[h];
+      if(!p){ prevPt[h]=null; S.vel[h]*=0.6; S.blade[h]=null; trailPts[h].length=0; continue; }
+      const pv=prevPt[h];
+      if(pv){
+        const dt=Math.max(0.008,(now-pv.t)/1000);
+        S.vel[h]=Math.max(Math.hypot(p.x-pv.x,p.y-pv.y)/dt, S.vel[h]*0.6);
+      }
+      prevPt[h]={ x:p.x, y:p.y, t:now };
+      trailPts[h].push({x:p.x,y:p.y});
+      if(trailPts[h].length>6) trailPts[h].shift();
+      const tp=trailPts[h];
+      if(tp.length>=3){
+        const dx=tp[tp.length-1].x-tp[0].x, dy=tp[tp.length-1].y-tp[0].y, m=Math.hypot(dx,dy);
+        if(m>4) S.swing[h]={ x:dx/m, y:dy/m };
+      }
+      let vx,vy,len;
+      const ax=axes && axes[h];
+      if(ax){ vx=ax.x; vy=ax.y; len=ax.len; }
+      else { vx=S.swing[h].x||0; vy=S.swing[h].y||-1; len=H*0.17; }
+      const m=Math.hypot(vx,vy)||1; vx/=m; vy/=m;
+      const pb=S.bvec[h];
+      if(pb && (vx*pb.x+vy*pb.y)<0){ vx=-vx; vy=-vy; }
+      const sm = pb ? { x:pb.x*0.7+vx*0.3, y:pb.y*0.7+vy*0.3 } : { x:vx, y:vy };
+      const sn=Math.hypot(sm.x,sm.y)||1;
+      S.bvec[h]={ x:sm.x/sn, y:sm.y/sn };
+      S.blade[h]={ x:p.x, y:p.y, dx:S.bvec[h].x, dy:S.bvec[h].y, len };
+    }
+  }
+
+  if(S.screen==='autocal') stepAutoCal(now, W, H);
+  if(S.screen==='cal')     drawMask(W,H), updateCalHint();
+  if(S.screen==='ready'){ drawTunnel(W,H); stepReady(now, W, H); }
+  if(S.screen==='play'){
+    $('warn').textContent = S.mode==='color'
+      ? '도구가 안 보여요. 카메라 쪽으로 들어 올리세요.'
+      : '몸이 화면에 안 잡혀요. 2~3걸음 뒤로 물러나세요.';
+    $('warn').classList.toggle('on', now - S.lastSeen > 700);
+    drawTunnel(W,H);
+    updatePlay(W,H);
+  }
+
+  drawShards(); drawBlades(); drawFx();
+}
+
+/* ---------- 준비 화면 ---------- */
+function toolsUp(){
+  return S.mode==='color'
+    ? (S.track.L.found && S.track.R.found)
+    : !!(S.blade.L || S.blade.R);
+}
+function stepReady(now, W, H){
+  const r = S.ready;
+
+  if(!r.countStart){
+    if(toolsUp()){
+      if(!r.okSince) r.okSince = now;
+      if(now - r.okSince > 600){ r.countStart = now; sfx('tick'); r.lastBeep = 3; }
+    }else r.okSince = 0;
+
+    const waited = (now - r.since)/1000;
+    bigText(W, H,
+      toolsUp() ? '준비 완료' : (S.mode==='color' ? '도구를 들어 주세요' : '카메라 앞에 서 주세요'),
+      toolsUp() ? '#E8ECF2' : '#697487',
+      waited > 12 ? 'Esc 를 눌러 취소하고 보정을 다시 하세요' :
+        (S.mode==='color' ? '양손 도구가 모두 보이면 카운트다운이 시작됩니다' : '')
+    );
+    return;
+  }
+
+  const left = 3 - Math.floor((now - r.countStart)/1000);
+  if(left <= 0){ sfx('go'); beginAudio(); return; }
+  if(left !== r.lastBeep){ sfx('tick'); r.lastBeep = left; }
+
+  const frac = ((now - r.countStart)/1000) % 1;
+  ctx.save();
+  ctx.globalAlpha = 1 - frac*0.55;
+  ctx.font = `700 ${Math.round(H*0.30)}px 'Chakra Petch', sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle = left===1 ? S.colors.R : S.colors.L;
+  ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 40;
+  ctx.fillText(String(left), W/2, H*0.5);
+  ctx.restore();
+}
+function bigText(W,H,title,color,sub){
+  ctx.save();
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font = `700 ${Math.round(H*0.075)}px 'Chakra Petch','Pretendard',sans-serif`;
+  ctx.fillStyle=color; ctx.fillText(title, W/2, H*0.46);
+  if(sub){
+    ctx.font = `400 ${Math.round(H*0.026)}px 'Pretendard',sans-serif`;
+    ctx.fillStyle='#697487'; ctx.fillText(sub, W/2, H*0.56);
+  }
+  ctx.restore();
+}
+
+/* =========================================================
+   자동 보정
+   ========================================================= */
+function openAuto(){
+  S.screen='autocal';
+  S.target={L:null,R:null}; S.track={L:{found:false},R:{found:false}};
+  S.blade={L:null,R:null}; S.bvec={L:null,R:null};
+  S.ac = { phase:'wait', since:performance.now(), maxVel:0,
+           hist:{ L:new Float64Array(36), R:new Float64Array(36) },
+           sat:{ L:new Float64Array(36), R:new Float64Array(36) } };
+  $('menu').classList.add('hidden');
+  $('auto').classList.add('on');
+  $('acDone').disabled = true;
+  acSay('양손에 도구를 들고, 카메라에서 2~3m 떨어져 서세요.',
+        '파랑·초록·보라 계열 도구를 쓰세요. 빨강·주황·분홍은 피부색과 겹쳐 자동 보정이 실패합니다.');
+}
+function closeAuto(){
+  S.screen='menu';
+  $('auto').classList.remove('on');
+  $('menu').classList.remove('hidden');
+  updateModeUI();
+}
+function acSay(a, b, bad){
+  $('acSay').textContent = a;
+  $('acSub').textContent = b || '';
+  $('acSub').className = bad ? 'sub bad' : 'sub';
+}
+const acMeter = f => { $('acMeter').style.width = Math.max(0,Math.min(100,f*100))+'%'; };
+
+/** 손목 주변에서 채도 높은 색의 히스토그램을 쌓는다 (피부 색상대는 제외) */
+function acSample(lm){
+  for(const h of ['L','R']){
+    const wi = h==='L'?15:16, ei = h==='L'?13:14;
+    const w=lm[wi], e=lm[ei];
+    if(!w || (w.visibility??1) < 0.5) continue;
+    const wx=(1-w.x)*SW, wy=w.y*SH;
+    const pts=[[wx,wy]];
+    if(e){
+      const ex=(1-e.x)*SW, ey=e.y*SH;
+      const dx=wx-ex, dy=wy-ey, m=Math.hypot(dx,dy)||1;
+      pts.push([wx+dx/m*9, wy+dy/m*9]);   // 손 너머(도구 쪽)도 함께
+    }
+    const R=11, R2=R*R;
+    for(const [cx,cy] of pts){
+      for(let y=Math.max(0,(cy-R)|0); y<Math.min(SH,(cy+R)|0+1); y++)
+        for(let x=Math.max(0,(cx-R)|0); x<Math.min(SW,(cx+R)|0+1); x++){
+          const dx=x-cx, dy=y-cy;
+          if(dx*dx+dy*dy > R2) continue;
+          const p=y*SW+x;
+          if(head[p]) continue;
+          const s=Ss[p], v=Vv[p], hu=Hh[p];
+          if(s < 0.35 || v < 0.25) continue;
+          if(isSkinHue(hu)) continue;                 // 피부색 대역은 후보에서 제외
+          const b=Math.floor(hu/10) % 36;
+          const wgt = s*s*s * v;                      // 채도가 높을수록 강하게
+          S.ac.hist[h][b] += wgt;
+          S.ac.sat[h][b]  += s*wgt;
+        }
+    }
+  }
+}
+function acResolve(h){
+  const hist=S.ac.hist[h], sat=S.ac.sat[h];
+  let bi=-1, bv=0;
+  for(let i=0;i<36;i++) if(hist[i]>bv){ bv=hist[i]; bi=i; }
+  if(bi<0 || bv < 1) return null;
+  // 피크 주변 ±2빈으로 원형 가중 평균
+  let vx=0, vy=0, sw=0, ss=0;
+  for(let d=-2; d<=2; d++){
+    const i=(bi+d+36)%36, w=hist[i];
+    if(!w) continue;
+    const hu=i*10+5;
+    vx+=Math.cos(hu*Math.PI/180)*w; vy+=Math.sin(hu*Math.PI/180)*w;
+    ss+=sat[i]; sw+=w;
+  }
+  let hu=Math.atan2(vy,vx)*180/Math.PI; if(hu<0) hu+=360;
+  return { h:hu, s: sw ? ss/sw : 0.6, v:0.7, weight:bv };
+}
+
+function stepAutoCal(now, W, H){
+  const ac = S.ac;
+  const el = (now - ac.since)/1000;
+
+  if(ac.phase==='wait'){
+    const ok = lastLm && (lastLm[15].visibility??0) > 0.5 && (lastLm[16].visibility??0) > 0.5;
+    acMeter(ok ? Math.min(1, el/1.0) : 0);
+    if(!ok){ ac.since = now; bigText(W,H,'양손을 들어 주세요','#697487','두 손목이 화면에 모두 보여야 합니다'); return; }
+    bigText(W,H,'그대로 유지','#E8ECF2','도구 색을 읽는 중입니다');
+    if(el > 0.8){ ac.phase='sample'; ac.since=now; }
+    return;
+  }
+
+  if(ac.phase==='sample'){
+    if(lastLm) acSample(lastLm);
+    acMeter(Math.min(1, el/1.4));
+    bigText(W,H,'도구 색 읽는 중','#E8ECF2', Math.round(Math.min(100, el/1.4*100))+'%');
+    acSay('그대로 들고 계세요.', '손목 주변에서 가장 선명한 색을 찾고 있습니다.');
+    if(el > 1.4){
+      const L=acResolve('L'), R=acResolve('R');
+      if(!L || !R){
+        ac.phase='fail';
+        acSay('도구 색을 찾지 못했습니다.',
+          '도구가 너무 어둡거나 흐릴 수 있습니다. 형광색 막대·장갑을 쓰거나 조명을 밝히고 다시 시도하세요. 빨강·주황·분홍 계열은 자동 보정 대상에서 제외됩니다.', true);
+        return;
+      }
+      if(hueDist(L.h, R.h) < 40){
+        ac.phase='fail';
+        acSay('양손 도구의 색이 너무 비슷합니다.',
+          '확실히 다른 색으로 바꿔주세요. 파랑 + 초록, 청록 + 보라 같은 조합이 좋습니다.', true);
+        return;
+      }
+      S.target.L=L; S.target.R=R;
+      S.colors.L=hsv2hex(L.h,L.s); S.colors.R=hsv2hex(R.h,R.s);
+      S.satMin = Math.min(0.8, Math.max(0.35, Math.min(L.s,R.s)*0.6));
+      $('satMin').value=S.satMin.toFixed(2); $('satLbl').textContent=S.satMin.toFixed(2);
+      ac.phase='swing'; ac.since=now; ac.maxVel=0;
+      acSay('이제 두 팔을 크게 두세 번 휘두르세요.', '스윙 속도를 재서 감도를 자동으로 맞춥니다.');
+    }
+    return;
+  }
+
+  if(ac.phase==='swing'){
+    ac.maxVel = Math.max(ac.maxVel, S.vel.L, S.vel.R);
+    acMeter(Math.min(1, el/3.5));
+    bigText(W,H,'크게 휘두르세요','#E8ECF2','속도 '+Math.round(ac.maxVel));
+    if(el > 3.5){
+      if(ac.maxVel > 200){
+        S.sens = Math.min(1.0, Math.max(0.2, (ac.maxVel*0.35)/canvas.width));
+      }
+      $('sens').value=S.sens.toFixed(2); $('sensLbl').textContent=S.sens.toFixed(2);
+      ac.phase='done'; acMeter(1);
+      $('acDone').disabled=false;
+      acSay('보정 완료.', `채도 하한 ${S.satMin.toFixed(2)} · 스윙 감도 ${S.sens.toFixed(2)} 로 맞췄습니다. 도구를 휘둘러 칼날이 잘 따라오는지 확인하고 완료를 누르세요.`);
+    }
+    return;
+  }
+
+  if(ac.phase==='done'){
+    drawMask(W,H);
+    const n = (S.track.L.found?1:0) + (S.track.R.found?1:0);
+    $('acHint').textContent = n===2 ? '양손 추적 중' : n===1 ? '한쪽만 잡힙니다' : '도구가 안 잡힙니다';
+  }
+  if(ac.phase==='fail'){ acMeter(0); }
+}
+
+/* =========================================================
+   원근 · 판정 · 그리기
+   ========================================================= */
+const APPROACH=1.5, ZMAX=6, FOCAL=1.45;
+const W_GOOD=0.16, W_PERFECT=0.07, W_MISS=0.20;
+
+function project(gx,gy,dt,W,H){
+  const z=Math.max(0,dt/APPROACH)*ZMAX, s=FOCAL/(z+FOCAL);
+  return { x: W*0.5+gx*(W*0.32)*s, y: H*0.52+gy*(H*0.22)*s, s };
+}
+function drawTunnel(W,H){
+  ctx.save();
+  ctx.strokeStyle='rgba(232,236,242,.07)'; ctx.lineWidth=1;
+  for(let i=0;i<4;i++){
+    const gx=COLX[i];
+    const a=project(gx,-1.35,0,W,H), b=project(gx,-1.35,APPROACH,W,H);
+    const c=project(gx, 1.35,0,W,H), d=project(gx, 1.35,APPROACH,W,H);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.lineTo(d.x,d.y); ctx.stroke();
+  }
+  const tl=project(-1.28,-1.35,0,W,H), br=project(1.28,1.35,0,W,H);
+  ctx.strokeStyle='rgba(232,236,242,.16)';
+  ctx.strokeRect(tl.x,tl.y,br.x-tl.x,br.y-tl.y);
+  ctx.restore();
+}
+function distToSeg(px,py,x1,y1,x2,y2){
+  const dx=x2-x1, dy=y2-y1, L2=dx*dx+dy*dy;
+  if(!L2) return Math.hypot(px-x1,py-y1);
+  let t=((px-x1)*dx+(py-y1)*dy)/L2; t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(x1+t*dx), py-(y1+t*dy));
+}
+function updatePlay(W,H){
+  const t=songTime(), R=W*S.rad, thr=S.sens*W;
+  $('progress').style.width = Math.min(100, ((t-S.segStart)/S.segDur)*100)+'%';
+
+  const live = S.notes.filter(n => !n.dead && (n.t-t) <= APPROACH+0.3);
+  live.sort((a,b)=> b.t-a.t);
+
+  for(const n of live){
+    const dt=n.t-t;
+    const p=project(COLX[n.col], ROWY[n.row], dt, W, H);
+
+    if(n.bomb){
+      if(!n.judged && Math.abs(dt)<=0.12){
+        for(const h of ['L','R']){
+          const b=S.blade[h]; if(!b) continue;
+          const hx=b.dx*b.len/2, hy=b.dy*b.len/2;
+          if(distToSeg(p.x,p.y,b.x-hx,b.y-hy,b.x+hx,b.y+hy) < R*0.8){
+            n.judged=n.dead=true; S.combo=0; S.score=Math.max(0,S.score-150);
+            S.fx.push({x:p.x,y:p.y,r:R*0.6,life:1,color:'#FF3B30',perfect:true});
+            sfx('bomb'); break;
+          }
+        }
+      }
+      if(dt < -0.16){ n.judged=n.dead=true; continue; }
+      if(!n.dead) drawBomb(p,R);
+      continue;
+    }
+
+    if(!n.judged && Math.abs(dt)<=W_GOOD){
+      const b=S.blade[n.hand];
+      if(b && S.vel[n.hand]>thr){
+        const hx=b.dx*b.len/2, hy=b.dy*b.len/2;
+        if(distToSeg(p.x,p.y,b.x-hx,b.y-hy,b.x+hx,b.y+hy) < R){
+          const sw=S.swing[n.hand];
+          let ok=true;
+          if(S.dirCheck && n.dir){
+            const w=DIRS[n.dir];
+            ok = (sw.x*w.x + sw.y*w.y) > 0.55;
+          }
+          if(ok){
+            const perfect = Math.abs(dt)<=W_PERFECT;
+            n.judged=n.dead=true;
+            S.combo++; S.maxCombo=Math.max(S.maxCombo,S.combo);
+            S.score += Math.round((perfect?300:120)*(1+Math.min(S.combo,50)/50));
+            perfect ? S.perfect++ : S.good++;
+            spawnShards(p,R,S.colors[n.hand],sw);
+            S.fx.push({x:p.x,y:p.y,r:R*0.5,life:1,color:S.colors[n.hand],perfect});
+            sfx('cut');
+            continue;
+          }
+        }
+      }
+    }
+    if(dt < -W_MISS && !n.judged){ n.judged=n.dead=true; S.miss++; S.combo=0; continue; }
+    drawCube(n,p,R);
+  }
+
+  $('scoreVal').textContent=S.score.toLocaleString();
+  $('comboVal').textContent = S.combo>=2 ? S.combo+' COMBO' : '—';
+  $('comboVal').style.color = S.combo>=10 ? '#E8ECF2' : '#697487';
+  const tot=S.perfect+S.good+S.miss;
+  $('accVal').textContent = tot ? Math.round(((S.perfect+S.good*0.5)/tot)*100)+'%' : '100%';
+
+  if(t > S.segStart+S.segDur+0.4) endGame();
+}
+function drawCube(n,p,R){
+  const size=R*1.5*p.s, col=S.colors[n.hand], alpha=Math.min(1,p.s*2.4);
+  ctx.save(); ctx.globalAlpha=alpha; ctx.translate(p.x,p.y);
+  ctx.shadowColor=col; ctx.shadowBlur=26*p.s;
+  ctx.fillStyle=col; ctx.globalAlpha=alpha*0.20;
+  ctx.fillRect(-size/2,-size/2,size,size);
+  ctx.globalAlpha=alpha; ctx.strokeStyle=col; ctx.lineWidth=Math.max(1.5,3.5*p.s);
+  ctx.strokeRect(-size/2,-size/2,size,size);
+  ctx.shadowBlur=0; ctx.fillStyle=col;
+  if(n.dir){
+    const d=DIRS[n.dir]; ctx.rotate(Math.atan2(d.y,d.x));
+    const s=size*0.30;
+    ctx.beginPath();
+    ctx.moveTo(s,0); ctx.lineTo(-s*0.55,s*0.75); ctx.lineTo(-s*0.15,0); ctx.lineTo(-s*0.55,-s*0.75);
+    ctx.closePath(); ctx.fill();
+  }else{
+    ctx.beginPath(); ctx.arc(0,0,size*0.16,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawBomb(p,R){
+  const size=R*1.25*p.s;
+  ctx.save(); ctx.globalAlpha=Math.min(1,p.s*2.4); ctx.translate(p.x,p.y);
+  ctx.fillStyle='#0B0C10'; ctx.strokeStyle='#FF3B30'; ctx.lineWidth=Math.max(1.5,3*p.s);
+  ctx.shadowColor='#FF3B30'; ctx.shadowBlur=18*p.s;
+  ctx.beginPath(); ctx.arc(0,0,size/2,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.shadowBlur=0; ctx.lineWidth=Math.max(1,2*p.s);
+  const k=size*0.16;
+  ctx.beginPath(); ctx.moveTo(-k,-k); ctx.lineTo(k,k); ctx.moveTo(k,-k); ctx.lineTo(-k,k); ctx.stroke();
+  ctx.restore();
+}
+function spawnShards(p,R,col,sw){
+  const nx=-sw.y, ny=sw.x, size=R*1.5;
+  for(const s of [1,-1]){
+    S.shards.push({ x:p.x, y:p.y, size, color:col,
+      vx:nx*s*230+sw.x*70, vy:ny*s*230+sw.y*70,
+      rot:Math.atan2(sw.y,sw.x), rotv:(Math.random()-0.5)*7, life:1 });
+  }
+}
+function drawShards(){
+  for(let i=S.shards.length-1;i>=0;i--){
+    const f=S.shards[i]; f.life-=0.045;
+    if(f.life<=0){ S.shards.splice(i,1); continue; }
+    f.x+=f.vx*0.016; f.y+=f.vy*0.016+4; f.rot+=f.rotv*0.016;
+    ctx.save(); ctx.globalAlpha=f.life*0.9;
+    ctx.translate(f.x,f.y); ctx.rotate(f.rot);
+    ctx.fillStyle=f.color; ctx.shadowColor=f.color; ctx.shadowBlur=14;
+    ctx.fillRect(-f.size/2,-f.size/2,f.size,f.size/2);
+    ctx.restore();
+  }
+}
+function drawBlades(){
+  if(S.screen==='menu' || S.screen==='result') return;
+  for(const h of ['L','R']){
+    const b=S.blade[h]; if(!b) continue;
+    const col=S.colors[h], hx=b.dx*b.len/2, hy=b.dy*b.len/2;
+    ctx.save(); ctx.lineCap='round';
+    ctx.shadowColor=col; ctx.shadowBlur=26;
+    ctx.strokeStyle=col; ctx.lineWidth=9; ctx.globalAlpha=0.85;
+    ctx.beginPath(); ctx.moveTo(b.x-hx,b.y-hy); ctx.lineTo(b.x+hx,b.y+hy); ctx.stroke();
+    ctx.shadowBlur=0; ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.globalAlpha=0.9;
+    ctx.beginPath(); ctx.moveTo(b.x-hx,b.y-hy); ctx.lineTo(b.x+hx,b.y+hy); ctx.stroke();
+    ctx.restore();
+  }
+}
+function drawFx(){
+  for(let i=S.fx.length-1;i>=0;i--){
+    const f=S.fx[i]; f.life-=0.055;
+    if(f.life<=0){ S.fx.splice(i,1); continue; }
+    ctx.save(); ctx.globalAlpha=f.life;
+    ctx.strokeStyle=f.color; ctx.lineWidth=f.perfect?4:2;
+    ctx.beginPath(); ctx.arc(f.x,f.y,f.r+(1-f.life)*95,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/* =========================================================
+   수동 보정
+   ========================================================= */
+function openCal(){
+  S.screen='cal'; S.calStep=0;
+  S.target={L:null,R:null}; S.track={L:{found:false},R:{found:false}};
+  S.blade={L:null,R:null}; S.bvec={L:null,R:null};
+  $('menu').classList.add('hidden'); $('cal').classList.add('on');
+  updateCalUI();
+}
+function closeCal(){
+  S.screen='menu'; $('cal').classList.remove('on'); $('menu').classList.remove('hidden');
+  updateModeUI();
+}
+function updateCalUI(){
+  const s=S.calStep;
+  $('calStep').textContent = `Step ${Math.min(s+1,2)} / 2`;
+  $('calDone').disabled = !(S.target.L && S.target.R);
+  $('calSub').className='sub';
+  if(s===0){
+    $('calSay').innerHTML='<b>왼손</b>에 든 도구를 카메라에 비추고, 화면에서 그 도구를 <b>클릭</b>하세요.';
+    $('calSub').textContent='파랑·초록·보라·청록 계열을 쓰세요. 빨강·주황·분홍은 피부색과 같은 계열이라 얼굴과 팔이 함께 잡힙니다.';
+  }else if(s===1){
+    $('calSay').innerHTML='이번엔 <b>오른손</b> 도구를 클릭하세요.';
+    $('calSub').textContent='왼손과 확실히 다른 색으로.';
+  }else{
+    $('calSay').innerHTML='도구를 휘둘러 보세요. <b>진한 색으로 칠해진 부분만</b> 도구로 인식됩니다.';
+    $('calSub').textContent='회색은 무시된 덩어리, 붉은 영역은 제외된 얼굴입니다.';
+  }
+}
+function updateCalHint(){
+  const n=(S.track.L.found?1:0)+(S.track.R.found?1:0);
+  $('calHint').textContent = S.calStep>=2
+    ? (n===2 ? '양손 추적 중' : n===1 ? '한쪽만 잡힙니다' : '도구가 안 잡힙니다')
+    : '';
+}
+$('cal').addEventListener('click', e => {
+  if(e.target.closest('.bar')) return;
+  if(S.calStep>=2) return;
+  const cx=Math.round(e.clientX/canvas.width*SW), cy=Math.round(e.clientY/canvas.height*SH);
+  const c=samplePatch(cx,cy);
+  if(c.s<0.30 || c.v<0.20){
+    $('calSub').className='sub bad';
+    $('calSub').textContent='이 색은 너무 흐리거나 어두워 인식이 어렵습니다. 더 진한 도구를 쓰거나 조명이 닿는 쪽에서 다시 클릭하세요.';
+    return;
+  }
+  const hand = S.calStep===0 ? 'L':'R';
+  if(hand==='R' && S.target.L && hueDist(c.h, S.target.L.h) < 40){
+    $('calSub').className='sub bad';
+    $('calSub').textContent='왼손 도구와 색이 너무 비슷합니다.';
+    return;
+  }
+  S.target[hand]=c; S.colors[hand]=hsv2hex(c.h,c.s);
+  const auto=Math.min(0.8, Math.max(0.35, c.s*0.65));
+  S.satMin=Math.max(S.satMin, auto);
+  $('satMin').value=S.satMin.toFixed(2); $('satLbl').textContent=S.satMin.toFixed(2);
+  S.calStep++; updateCalUI();
+  if(isSkinHue(c.h)){
+    $('calSub').className='sub bad';
+    $('calSub').innerHTML='⚠ 이 색은 <b>피부색과 같은 계열</b>입니다. 얼굴·팔이 같이 잡힐 수 있습니다.';
+  }
+  const ring=$('calRing');
+  ring.style.display='block';
+  ring.style.left=e.clientX+'px'; ring.style.top=e.clientY+'px';
+  ring.style.borderColor=S.colors[hand];
+  setTimeout(()=> ring.style.display='none', 700);
+});
+$('calRedo').addEventListener('click', () => {
+  S.calStep=0; S.target={L:null,R:null};
+  S.track={L:{found:false},R:{found:false}}; S.blade={L:null,R:null};
+  updateCalUI();
+});
+$('calCancel').addEventListener('click', closeCal);
+$('calDone').addEventListener('click', closeCal);
+$('acRedo').addEventListener('click', openAuto);
+$('acCancel').addEventListener('click', closeAuto);
+$('acDone').addEventListener('click', closeAuto);
+
+const SETUP_KEY='beatslasher_setup';
+function saveSetup(){
+  try{ localStorage.setItem(SETUP_KEY, JSON.stringify({
+    mode:S.mode, target:S.target, colors:S.colors, satMin:S.satMin, diff:S.diff, songId:S.songId, offset:S.offset })); }catch(e){}
+}
+function restoreSetup(){
+  let d=null; try{ d=JSON.parse(localStorage.getItem(SETUP_KEY)||'null'); }catch(e){}
+  if(!d) return;
+  if(d.mode) S.mode=d.mode;
+  if(d.target && d.target.L && d.target.R){ S.target=d.target; if(d.colors) S.colors=d.colors; }
+  if(d.satMin){ S.satMin=d.satMin; $('satMin').value=S.satMin.toFixed(2); $('satLbl').textContent=S.satMin.toFixed(2); }
+  if(d.diff) S.diff=d.diff;
+  if(typeof d.offset==='number'){ S.offset=d.offset; $('offset').value=Math.round(S.offset*1000); $('offLbl').textContent=Math.round(S.offset*1000)+' ms'; }
+  if(d.songId && S.songs.some(x=>x.id===d.songId)){ S.songId=d.songId; refreshSongs(); }
+  [...$('mode').children].forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.m===S.mode)));
+  [...$('diff').children].forEach(b=>b.setAttribute('aria-pressed', String(+b.dataset.gap===S.diff.gap)));
+}
+function updateModeUI(){
+  const isColor = S.mode==='color';
+  $('swWrap').style.display = isColor?'flex':'none';
+  $('calRow').style.display = isColor?'flex':'none';
+  $('colorTunes').style.display = isColor?'block':'none';
+  $('trackHead').style.display = isColor?'block':'none';
+  $('swL').style.background = S.target.L ? S.colors.L : 'var(--line)';
+  $('swR').style.background = S.target.R ? S.colors.R : 'var(--line)';
+  $('swLt').textContent = S.target.L ? '지정됨' : '미지정';
+  $('swRt').textContent = S.target.R ? '지정됨' : '미지정';
+  if(!isColor) S.colors={ L:'#00E5FF', R:'#FF2D95' };
+
+  const st=$('status'); st.className='status';
+  const ready = !isColor || (S.target.L && S.target.R);
+  $('startBtn').disabled = !ready || !S.landmarker;
+  st.textContent = !S.landmarker ? '카메라를 준비하는 중…'
+    : !ready ? '도구 색을 잡아야 시작할 수 있습니다. 자동 보정을 눌러보세요.'
+    : '준비 완료. 카메라에서 2~3m 떨어져 서세요.';
+  saveSetup();
+}
+
+/* =========================================================
+   랭킹
+   ========================================================= */
+let memRank=[];
+const loadRank=()=>{ try{ return JSON.parse(localStorage.getItem('beatslasher_rank')||'[]'); }catch(e){ return memRank; } };
+const saveRank=l=>{ memRank=l; try{ localStorage.setItem('beatslasher_rank', JSON.stringify(l)); }catch(e){} };
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function renderRank(){
+  const list=loadRank().sort((a,b)=>b.score-a.score).slice(0,10);
+  const html=list.map((r,i)=>`
+    <li><span class="n">${String(i+1).padStart(2,'0')}</span>
+    <span class="who">${esc(r.name)}<small>${r.acc}% · ${r.combo} combo</small></span>
+    <span class="pts">${r.score.toLocaleString()}</span></li>`).join('');
+  $('rankList').innerHTML=html; $('rankList2').innerHTML=html;
+  $('rankEmpty').style.display = list.length?'none':'block';
+}
+
+/* =========================================================
+   UI
+   ========================================================= */
+$('mode').addEventListener('click', e => {
+  const b=e.target.closest('button'); if(!b) return;
+  [...$('mode').children].forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true'); S.mode=b.dataset.m; updateModeUI();
+});
+$('autoBtn').addEventListener('click', openAuto);
+$('calBtn').addEventListener('click', openCal);
+
+$('songList').addEventListener('click', async e => {
+  const del = e.target.closest('[data-del]');
+  if(del){
+    e.stopPropagation();
+    const id = del.dataset.del;
+    if(!confirm('이 곡을 보관함에서 지웁니다.')) return;
+    await delSong(id);
+    S.bufCache.delete(id);
+    if(S.songId===id) S.songId='demo';
+    await refreshSongs();
+    return;
+  }
+  const row = e.target.closest('.s');
+  if(!row) return;
+  S.songId = row.dataset.id;
+  await refreshSongs();
+  saveSetup();
+});
+
+$('song').addEventListener('change', async e => {
+  const files=[...e.target.files]; if(!files.length) return;
+  const st=$('status'); st.className='status';
+  for(const f of files){
+    st.textContent = `저장 중… ${f.name}`;
+    try{
+      const buf = await getCtx().decodeAudioData(await f.arrayBuffer());
+      const rec = {
+        id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random())),
+        name: f.name.replace(/\.[^.]+$/,''),
+        blob: f, dur: buf.duration,
+        segStart: 0, segDur: Math.min(45, Math.max(20, Math.floor(buf.duration*0.35))),
+        addedAt: Date.now()
+      };
+      await putSong(rec);
+      S.bufCache.set(rec.id, buf);
+      S.songId = rec.id;
+    }catch(err){
+      st.className='status err';
+      st.textContent = `${f.name} 은(는) 읽을 수 없습니다. mp3나 wav로 바꿔보세요.`;
+    }
+  }
+  e.target.value='';
+  await refreshSongs();
+  if(!$('status').classList.contains('err')) updateModeUI();
+});
+
+$('segStart').addEventListener('change', () => { const s=currentSong(); if(s){ s.segStart=+$('segStart').value||0; putSong(s); } });
+$('segDur').addEventListener('change',   () => { const s=currentSong(); if(s){ s.segDur=+$('segDur').value||45; putSong(s); } });
+
+$('diff').addEventListener('click', e => {
+  const b=e.target.closest('button'); if(!b) return;
+  [...$('diff').children].forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  S.diff={ gap:+b.dataset.gap, k:+b.dataset.k, dir:+b.dataset.dir, bomb:+b.dataset.bomb };
+  saveSetup();
+});
+$('startBtn').addEventListener('click', prepareGame);
+$('startBtn').disabled = true;
+
+$('saveBtn').addEventListener('click', () => {
+  const list=loadRank();
+  list.push({ name:$('playerName').value.trim()||'익명', score:S.score, acc:S.lastAcc, combo:S.maxCombo, at:Date.now() });
+  saveRank(list); backToMenu();
+});
+$('againBtn').addEventListener('click', backToMenu);
+$('clearRank').addEventListener('click', () => {
+  if(confirm('오늘의 기록을 전부 지웁니다. 진행할까요?')){ saveRank([]); renderRank(); }
+});
+
+$('tuneTab').addEventListener('click', () => $('tune').classList.toggle('open'));
+$('offset').addEventListener('input', e => { S.offset=+e.target.value/1000; $('offLbl').textContent=e.target.value+' ms'; saveSetup(); });
+$('sens').addEventListener('input',   e => { S.sens=+e.target.value; $('sensLbl').textContent=(+e.target.value).toFixed(2); });
+$('rad').addEventListener('input',    e => { S.rad=+e.target.value; $('radLbl').textContent=+e.target.value<0.08?'좁음':+e.target.value>0.11?'넓음':'보통'; });
+$('dirCheck').addEventListener('change', e => { S.dirCheck=e.target.checked; });
+$('hueTol').addEventListener('input', e => { S.hueTol=+e.target.value; $('hueLbl').textContent=e.target.value+'°'; });
+$('satMin').addEventListener('input', e => { S.satMin=+e.target.value; $('satLbl').textContent=(+e.target.value).toFixed(2); });
+$('minPix').addEventListener('input', e => { S.minPix=+e.target.value; $('pixLbl').textContent=e.target.value+' px'; });
+$('headMask').addEventListener('change', e => { S.useHeadMask=e.target.checked; });
+$('showMask').addEventListener('change', e => { S.showMask=e.target.checked; });
+
+document.addEventListener('keydown', e => {
+  if(e.code==='Space'){
+    if(S.screen==='result'){ e.preventDefault(); backToMenu(); }
+    else if(S.screen==='menu' && !$('startBtn').disabled){ e.preventDefault(); prepareGame(); }
+  }
+  if((e.key==='s'||e.key==='S') && S.screen==='play') $('tune').classList.toggle('open');
+  if(e.key==='Escape'){
+    if(S.screen==='play') endGame();
+    else if(S.screen==='ready') abortToMenu();
+    else if(S.screen==='cal') closeCal();
+    else if(S.screen==='autocal') closeAuto();
+  }
+});
+
+/* =========================================================
+   게임 센터 연결 — 폰은 리모컨 역할 (A 시작, 결과 입력)
+   ========================================================= */
+function saveResult(name){
+  const n = (name||'').trim() || '익명';
+  const list=loadRank();
+  list.push({ name:n, score:S.score, acc:S.lastAcc, combo:S.maxCombo, at:Date.now() });
+  saveRank(list);
+  Hub.submitScore({ name:n, score:S.score, acc:S.lastAcc, combo:S.maxCombo });
+  backToMenu();
+}
+// 원래 PC 버튼도 같은 저장 경로를 쓰도록
+$('saveBtn').replaceWith($('saveBtn').cloneNode(true));
+$('saveBtn').addEventListener('click', () => saveResult($('playerName').value));
+
+Hub.on('button', b => {
+  if(!b.down) return;
+  if(b.key==='A'){
+    if(S.screen==='menu' && !$('startBtn').disabled) prepareGame();
+    else if(S.screen==='result') backToMenu();
+  } else if(b.key==='B'){
+    if(S.screen==='ready') abortToMenu();
+    else if(S.screen==='result') backToMenu();
+    else if(S.screen==='cal') closeCal();
+    else if(S.screen==='autocal') closeAuto();
+  }
+});
+Hub.on('form', d => { if(S.screen==='result') saveResult(d.values.name); });
+Hub.on('formSkip', () => { if(S.screen==='result') backToMenu(); });
+Hub.on('exit', () => {
+  try{ S.source && S.source.stop(); }catch(e){}
+  try{ S.actx && S.actx.close(); }catch(e){}
+});
+
+// 화면이 바뀔 때마다 폰 안내를 맞춰줌
+let padKey='';
+setInterval(() => {
+  const key = S.screen + '|' + $('startBtn').disabled + '|' + !!S.landmarker;
+  if(key===padKey) return;
+  padKey = key;
+  if(S.screen==='result'){
+    Hub.setPad('form', {
+      title:'기록을 남기시겠어요?', big:S.score.toLocaleString(),
+      hint:`정확도 ${S.lastAcc}%, 최대 ${S.maxCombo}콤보`,
+      fields:[{ id:'name', label:'학번 이름', maxlength:10 }],
+      submit:'기록 등록', skip:'등록 없이 넘어가기'
+    });
+  } else if(S.screen==='menu'){
+    Hub.setPad('camera', { title:'비트 슬래셔', hint:
+      !S.landmarker ? '카메라를 준비하는 중입니다.'
+      : $('startBtn').disabled ? '진행자가 노트북에서 인식 방식과 도구 색을 먼저 맞춰주세요.'
+      : 'A를 누르면 시작합니다. 카메라에서 2~3m 떨어져 서세요.' });
+  } else if(S.screen==='ready'){
+    Hub.setPad('camera', { title:'준비', hint:'도구를 들고 카메라 앞에 서세요. B를 누르면 취소합니다.' });
+  } else if(S.screen==='play'){
+    Hub.setPad('camera', { title:'플레이 중', hint:'화살표 방향대로 큐브를 베세요.' });
+  } else {
+    Hub.setPad('camera', { title:'보정 중', hint:'노트북 화면의 안내를 따라주세요. B를 누르면 닫힙니다.' });
+  }
+}, 200);
+
+renderRank();
+initVision();
+</script>
+</body>
+</html>

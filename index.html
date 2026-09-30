@@ -158,6 +158,7 @@ let games = [], sel = 0, current = null, padOverride = null;
 let peer = null, conn = null;
 let ref = null, cur = { x: .5, y: .5 }, lastPtr = null;
 let bHeld = false, bDownAt = 0, lastActivity = performance.now(), loadTimer = null;
+let rtt = 0, actO = null;
 
 /* ---------- 방 코드: 새로고침해도 유지되어 폰 QR이 계속 유효 ---------- */
 function randCode(){
@@ -309,6 +310,7 @@ function startPeer(){
       if (conn !== c) return;
       setStatus(true, '컨트롤러 연결됨');
       lostBanner(false); sendPad();
+      toGame({ type: 'controller', connected: true });
       toast('컨트롤러가 연결됐습니다');
     });
     c.on('data', onData);
@@ -317,11 +319,13 @@ function startPeer(){
       conn = null; bHeld = false;
       setStatus(false, '컨트롤러를 기다리는 중');
       lostBanner(true);
+      toGame({ type: 'controller', connected: false });
     });
   });
 }
 
 function send(m){ if (conn && conn.open) try{ conn.send(m); }catch(e){} }
+setInterval(() => send({ t: 'ping', ts: Date.now() }), 1500);
 
 const DEFAULT_HINT = {
   home:   '방향 버튼으로 고르고 A를 누르세요.',
@@ -331,20 +335,32 @@ const DEFAULT_HINT = {
 };
 function sendPad(){
   if (!current){ send({ t: 'pad', pad: 'home', title: '게임 고르기', hint: DEFAULT_HINT.home }); return; }
-  const pad = (padOverride && padOverride.pad) || current.pad || (current.input === 'camera' ? 'camera' : 'motion');
-  const hint = (padOverride && padOverride.hint) || current.padHint || DEFAULT_HINT[pad] || '';
-  send({ t: 'pad', pad, title: current.title, hint });
+  const o = { t: 'pad', pad: current.pad || (current.input === 'camera' ? 'camera' : 'motion'),
+              title: current.title, hint: padOverride ? '' : current.padHint };
+  if (padOverride) for (const k in padOverride) if (padOverride[k] !== undefined) o[k] = padOverride[k];
+  if (!o.hint) o.hint = DEFAULT_HINT[o.pad] || '';
+  send(o);
 }
 
 function onData(d){
   if (!d || typeof d !== 'object') return;
   if (d.t === 'o') onOrientation(d);
-  else if (d.t === 'cal'){ ref = { a: d.a, b: d.b }; toast('조준을 가운데로 맞췄습니다', 1500); }
+  else if (d.t === 'pong'){ const r = Date.now() - d.ts; rtt = rtt ? rtt * .7 + r * .3 : r; }
+  else if (d.t === 'cal'){
+    ref = { a: d.a, b: d.b };
+    toGame({ type: 'calibrate', a: d.a, b: d.b });
+    toast('조준을 가운데로 맞췄습니다', 1500);
+  }
   else if (d.t === 'btn'){ lastActivity = performance.now(); onButton(d.k, !!d.down); }
+  else if (d.t === 'form'){ lastActivity = performance.now(); toGame({ type: 'form', values: d.values || {} }); }
+  else if (d.t === 'formSkip'){ lastActivity = performance.now(); toGame({ type: 'formSkip' }); }
+  else if (d.t === 'typing') lastActivity = performance.now();
 }
 
 function onOrientation(o){
-  lastActivity = performance.now();
+  if (!actO || Math.abs(((o.a - actO.a + 540) % 360) - 180) > 3 || Math.abs(o.b - actO.b) > 3){
+    actO = { a: o.a, b: o.b }; lastActivity = performance.now();
+  }
   if (!ref) ref = { a: o.a, b: o.b };          // 처음 들어온 방향을 가운데로
   const dA = ((o.a - ref.a + 540) % 360) - 180;
   const dB = o.b - ref.b;
@@ -359,7 +375,7 @@ function onOrientation(o){
   if (current.mode === 'compat') compatPointer(cur.x, cur.y);
   else {
     toGame({ type: 'pointer', x: cur.x, y: cur.y, speed });
-    toGame({ type: 'motion', a: o.a, b: o.b, g: o.g });
+    toGame({ type: 'motion', a: o.a, b: o.b, g: o.g, rtt });
   }
 }
 
@@ -412,7 +428,7 @@ function launch(g){
 frame.addEventListener('load', () => {
   if (!current || !frame.getAttribute('src') || frame.getAttribute('src') === 'about:blank') return;
   if (current.mode === 'compat') hideLoading();
-  toGame({ type: 'hello', game: current.id });
+  toGame({ type: 'hello', game: current.id, connected: !!(conn && conn.open) });
 });
 
 function exitGame(msg){
@@ -438,7 +454,7 @@ window.addEventListener('message', e => {
     case 'ready': hideLoading(); break;
     case 'exit': exitGame(); break;
     case 'activity': lastActivity = performance.now(); break;
-    case 'pad': padOverride = { pad: d.pad, hint: d.hint }; sendPad(); break;
+    case 'pad': { const o = Object.assign({}, d); delete o.hub; delete o.type; padOverride = o; sendPad(); break; }
     case 'score': saveScore(current.id, d.data); break;
   }
 });

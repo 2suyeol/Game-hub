@@ -86,9 +86,23 @@ Hub.on('pointer', ({x, y, speed}) => {})  // 폰 조준 위치 0~1, 휘두르기
 Hub.on('button', ({key, down}) => {})     // 'A' 'B' 'UP' 'DOWN' 'LEFT' 'RIGHT'
 Hub.on('exit', () => {})                  // 홈으로 나가기 직전
 
+Hub.on('calibrate', ({a, b}) => {})       // 폰에서 조준 맞추기를 눌렀을 때
+Hub.on('motion', ({a, b, g, rtt}) => {})  // 폰 기울기 원본 값과 지연(ms). 조준을 직접 계산하는 게임용
+Hub.on('controller', ({connected}) => {}) // 폰 연결이 끊기거나 다시 붙었을 때
+Hub.on('form', ({values}) => {})          // 폰 입력칸에서 보낸 값
+Hub.on('formSkip', () => {})
+
 Hub.ready()                // 로딩이 끝나면 호출
 Hub.submitScore({name, score})
 Hub.exit()                 // 게임이 스스로 홈으로 돌아갈 때
+
+// 폰 화면 바꾸기
+Hub.setPad('motion', { title: '과일 자르기', hint: 'A를 누르면 시작합니다.' })
+Hub.setPad('form', {
+  title: '기록을 남기시겠어요?', big: '2,480',
+  fields: [{ id: 'sid', label: '학번', inputmode: 'numeric' }, { id: 'name', label: '이름' }],
+  submit: '순위표에 올리기', skip: '기록 없이 넘어가기'
+})
 ```
 
 게임 파일을 게임 센터 밖에서 그냥 열면 개발 모드로 동작합니다. 마우스가 조준, 클릭·Z·스페이스가 A, X·Esc가 B입니다. 폰 없이도 개발과 테스트를 할 수 있습니다.

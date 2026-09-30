@@ -9,18 +9,18 @@
     "pad": "motion",
     "emoji": "🍉",
     "color": "#F25F5C",
-    "padHint": "폰을 빠르게 휘둘러 과일을 자르세요. 폭탄은 피하세요."
+    "padHint": "화면 가운데를 겨누고 조준 맞추기를 누르세요."
   },
   {
     "id": "rhythm",
-    "title": "리듬 게임",
-    "desc": "카메라 앞에서 박자에 맞춰 손을 움직이세요.",
+    "title": "비트 슬래셔",
+    "desc": "날아오는 큐브를 화살표 방향대로 베세요. 카메라가 몸의 움직임을 읽습니다.",
     "path": "games/rhythm/index.html",
     "input": "camera",
     "mode": "sdk",
     "pad": "camera",
-    "emoji": "🎵",
-    "color": "#7B6CF6",
-    "padHint": "화면 앞 표시된 자리에 서세요. 폰은 내려놓아도 됩니다."
+    "emoji": "⚔️",
+    "color": "#FF2D95",
+    "padHint": "카메라에서 2~3m 떨어져 서세요. A를 누르면 시작합니다."
   }
 ]

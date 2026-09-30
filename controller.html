@@ -61,6 +61,16 @@ button{font:inherit;touch-action:none}
 .ab small{font-family:var(--body);font-size:14px;opacity:.85}
 button.on{transform:scale(.96);filter:brightness(1.12)}
 
+.bignum{font-family:var(--display);font-size:56px;color:var(--lantern);margin-top:6px;line-height:1.1}
+.bignum:empty{display:none}
+.form{display:none;flex-direction:column;gap:12px}
+.form label{font-size:14px;color:var(--muted);margin-bottom:-6px}
+.form input{font:inherit;font-size:19px;padding:16px;border-radius:16px;border:2px solid var(--dusk);background:#1d2a45;
+  color:var(--paper);width:100%;-webkit-user-select:text;user-select:text;touch-action:auto}
+.form input:focus{outline:none;border-color:var(--lantern)}
+.ghost{border:2px solid var(--dusk);background:none;color:var(--muted);padding:15px;border-radius:18px;font-size:17px;touch-action:auto}
+#pad[data-mode="form"] .form{display:flex}
+#pad[data-mode="form"] .ab{display:none}
 #pad .dpad,#pad .cal,#pad .stand{display:none}
 #pad[data-mode="home"] .dpad,#pad[data-mode="dpad"] .dpad{display:grid}
 #pad[data-mode="motion"] .cal{display:block}
@@ -81,7 +91,12 @@ button.on{transform:scale(.96);filter:brightness(1.12)}
 
 <section id="pad" data-mode="home" hidden>
   <div class="top" id="top"><span><span class="dot"></span><span id="state">연결됨</span></span><span id="rcode"></span></div>
-  <div class="info"><h2 id="pTitle">게임 고르기</h2><p id="pHint"></p></div>
+  <div class="info"><h2 id="pTitle">게임 고르기</h2><div class="bignum" id="pBig"></div><p id="pHint"></p></div>
+  <div class="form" id="form">
+    <div id="fields"></div>
+    <button class="cta" id="btnSubmit">보내기</button>
+    <button class="ghost" id="btnSkip">넘어가기</button>
+  </div>
   <div class="fill"></div>
 
   <div class="dpad">
@@ -186,9 +201,49 @@ function onData(d){
     $('#pTitle').textContent = d.title || '';
     $('#pHint').textContent = d.hint || '';
     $('#aLabel').textContent = A_LABEL[mode] || 'A';
+    $('#pBig').textContent = d.big || '';
+    if (mode === 'form') renderForm(d);
     $('#bLabel').textContent = mode === 'home' ? '뒤로' : '길게 누르면 홈';
   } else if (d.t === 'ping') send({ t: 'pong', ts: d.ts });
 }
+
+/* 입력칸: 게임이 요청한 칸을 그려서 값을 보냄 (예: 학번, 이름) */
+let formFields = [];
+function renderForm(d){
+  formFields = d.fields || [];
+  const box = $('#fields'); box.innerHTML = '';
+  box.style.display = 'flex'; box.style.flexDirection = 'column'; box.style.gap = '12px';
+  formFields.forEach((f, i) => {
+    const label = document.createElement('label');
+    label.textContent = f.label || f.id; label.htmlFor = 'f_' + f.id;
+    const inp = document.createElement('input');
+    inp.id = 'f_' + f.id; inp.autocomplete = 'off'; inp.spellcheck = false;
+    if (f.inputmode) inp.inputMode = f.inputmode;
+    if (f.maxlength) inp.maxLength = f.maxlength;
+    inp.placeholder = f.label || '';
+    inp.addEventListener('input', () => send({ t: 'typing' }));
+    inp.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const next = $('#f_' + (formFields[i + 1] || {}).id);
+      next ? next.focus() : submitForm();
+    });
+    box.append(label, inp);
+  });
+  $('#btnSubmit').textContent = d.submit || '보내기';
+  $('#btnSkip').textContent = d.skip || '넘어가기';
+  $('#btnSkip').hidden = d.skip === false;
+  if (formFields.length) setTimeout(() => { const f = $('#f_' + formFields[0].id); f && f.focus(); }, 200);
+}
+function submitForm(){
+  const values = {}; let any = false;
+  formFields.forEach(f => { const v = ($('#f_' + f.id) || {}).value || ''; values[f.id] = v.trim(); if (v.trim()) any = true; });
+  if (!any && formFields.length){ $('#f_' + formFields[0].id).focus(); return; }
+  send({ t: 'form', values });
+  if (document.activeElement) document.activeElement.blur();
+}
+$('#btnSubmit').addEventListener('click', submitForm);
+$('#btnSkip').addEventListener('click', () => { send({ t: 'formSkip' }); if (document.activeElement) document.activeElement.blur(); });
 
 /* 버튼: 누를 때와 뗄 때를 모두 보냄 */
 document.querySelectorAll('[data-k]').forEach(b => {
