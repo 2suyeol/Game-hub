@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#172033">
+<title>컨트롤러</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#172033; --dusk:#26334f; --lantern:#FFC857; --coral:#F25F5C;
+  --mint:#6FD6C1; --paper:#F5F1E6; --muted:#9AA6C0;
+  --display:'Jua','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --body:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
+html,body{height:100%;background:var(--ink);color:var(--paper);font-family:var(--body);overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:none}
+section{position:fixed;inset:0;display:flex;flex-direction:column;
+  padding:calc(env(safe-area-inset-top, 0px) + 20px) 20px calc(env(safe-area-inset-bottom, 0px) + 20px)}
+button{font:inherit;touch-action:none}
+
+#join{justify-content:center;gap:16px;text-align:center}
+#join h1{font-family:var(--display);font-weight:400;font-size:34px}
+#join p{color:var(--muted);font-size:17px}
+#codein{font-family:var(--display);font-size:48px;letter-spacing:.3em;text-align:center;padding:14px 0 14px .3em;
+  border-radius:18px;border:2px solid var(--dusk);background:#1d2a45;color:var(--paper);width:100%;text-transform:uppercase;
+  -webkit-user-select:text;user-select:text;touch-action:auto}
+#codein:focus{outline:none;border-color:var(--lantern)}
+.cta{font-family:var(--display);font-size:24px;padding:18px;border:0;border-radius:18px;background:var(--lantern);color:var(--ink);touch-action:auto}
+.cta:disabled{opacity:.6}
+#err{color:var(--coral);min-height:24px;font-size:16px;line-height:1.5}
+
+#pad{gap:18px}
+.top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:15px}
+.top .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--mint);margin-right:8px;vertical-align:1px}
+.top.off .dot{background:var(--coral)}
+#rcode{font-family:var(--display);letter-spacing:.12em;color:var(--paper)}
+.info h2{font-family:var(--display);font-weight:400;font-size:30px}
+.info p{color:var(--muted);font-size:16px;margin-top:6px;line-height:1.55}
+.fill{flex:1;min-height:8px}
+
+.dpad{display:grid;grid-template-columns:repeat(3,74px);grid-template-rows:repeat(3,74px);gap:6px;justify-content:center}
+.dpad button{border:0;border-radius:18px;background:var(--dusk);color:var(--paper);font-size:26px}
+.dpad .up{grid-area:1/2} .dpad .left{grid-area:2/1} .dpad .right{grid-area:2/3} .dpad .down{grid-area:3/2}
+
+.cal{border:2px solid var(--lantern);background:none;color:var(--lantern);font-family:var(--display);font-size:22px;padding:16px;border-radius:18px}
+.cal.flash{background:var(--lantern);color:var(--ink)}
+
+.stand{display:grid;place-items:center;text-align:center;gap:8px;color:var(--muted);font-size:16px}
+.stand .big{font-size:64px}
+
+.ab{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ab button{height:118px;border:0;border-radius:24px;font-family:var(--display);font-size:44px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ab .a{background:var(--lantern);color:var(--ink)}
+.ab .b{background:var(--coral);color:#fff}
+.ab small{font-family:var(--body);font-size:14px;opacity:.85}
+button.on{transform:scale(.96);filter:brightness(1.12)}
+
+#pad .dpad,#pad .cal,#pad .stand{display:none}
+#pad[data-mode="home"] .dpad,#pad[data-mode="dpad"] .dpad{display:grid}
+#pad[data-mode="motion"] .cal{display:block}
+#pad[data-mode="camera"] .stand{display:grid}
+</style>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+<section id="join">
+  <h1>컨트롤러 연결</h1>
+  <p>큰 화면에 보이는 네 글자를 입력하세요.</p>
+  <input id="codein" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE">
+  <button class="cta" id="btnJoin">연결하기</button>
+  <div id="err" role="alert"></div>
+</section>
+
+<section id="pad" data-mode="home" hidden>
+  <div class="top" id="top"><span><span class="dot"></span><span id="state">연결됨</span></span><span id="rcode"></span></div>
+  <div class="info"><h2 id="pTitle">게임 고르기</h2><p id="pHint"></p></div>
+  <div class="fill"></div>
+
+  <div class="dpad">
+    <button data-k="UP" class="up" aria-label="위">▲</button>
+    <button data-k="LEFT" class="left" aria-label="왼쪽">◀</button>
+    <button data-k="RIGHT" class="right" aria-label="오른쪽">▶</button>
+    <button data-k="DOWN" class="down" aria-label="아래">▼</button>
+  </div>
+  <button class="cal" id="btnCal">조준 맞추기</button>
+  <div class="stand"><div class="big">🧍</div><div>카메라가 당신을 보고 있어요</div></div>
+
+  <div class="fill"></div>
+  <div class="ab">
+    <button data-k="A" class="a">A<small id="aLabel">선택</small></button>
+    <button data-k="B" class="b">B<small id="bLabel">뒤로</small></button>
+  </div>
+</section>
+
+<script>
+const C = window.HUB_CONFIG;
+const $ = s => document.querySelector(s);
+const P = new URLSearchParams(location.search);
+const A_LABEL = { home: '선택', dpad: '확인', motion: '발사', camera: '시작' };
+
+let peer = null, conn = null, code = '', mode = 'home';
+let wantConnect = false, connectedOnce = false, retryTimer = null, lastO = null, lastSent = 0;
+
+const pre = (P.get('code') || '').toUpperCase();
+if (pre) $('#codein').value = pre;
+const needsPerm = typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function';
+
+function err(m){ $('#err').textContent = m; }
+function resetJoin(){ const b = $('#btnJoin'); b.disabled = false; b.textContent = '연결하기'; }
+
+$('#btnJoin').onclick = join;
+$('#codein').addEventListener('keydown', e => { if (e.key === 'Enter') join(); });
+// 안드로이드는 권한 팝업이 없어서 QR로 들어오면 바로 연결
+if (/^[A-Z]{4}$/.test(pre) && !needsPerm) join();
+
+async function join(){
+  const c = $('#codein').value.trim().toUpperCase();
+  if (!/^[A-Z]{4}$/.test(c)){ err('코드는 영문 네 글자입니다.'); return; }
+  if (typeof Peer === 'undefined'){ err('연결 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.'); return; }
+  if (needsPerm){
+    try{
+      const r = await DeviceOrientationEvent.requestPermission();
+      if (r !== 'granted'){ err('동작 센서 권한이 필요합니다. 설정 > Safari > 동작 및 방향 접근을 켜세요.'); return; }
+    }catch(e){ err('센서 권한 요청에 실패했습니다. 연결하기를 다시 눌러주세요.'); return; }
+  }
+  code = c; wantConnect = true; connectedOnce = false; err('');
+  const b = $('#btnJoin'); b.disabled = true; b.textContent = '연결 중…';
+  connect(); keepAwake();
+}
+
+function connect(){
+  clearTimeout(retryTimer);
+  if (peer && !peer.destroyed && peer.open){ dial(); return; }
+  if (peer) try{ peer.destroy(); }catch(e){}
+  peer = new Peer({ debug: 0, config: { iceServers: C.iceServers } });
+  peer.on('open', dial);
+  peer.on('error', e => {
+    if (e.type === 'peer-unavailable' && !connectedOnce){
+      wantConnect = false; resetJoin();
+      err('그 코드의 화면을 찾지 못했습니다. 큰 화면의 코드를 다시 확인하세요.');
+      return;
+    }
+    retry();
+  });
+  peer.on('disconnected', retry);
+}
+
+function dial(){
+  if (conn) try{ conn.close(); }catch(e){}
+  const c = peer.connect(C.peerPrefix + code);
+  conn = c;
+  c.on('open', () => {
+    if (conn !== c) return;
+    connectedOnce = true;
+    $('#join').hidden = true; $('#pad').hidden = false;
+    $('#rcode').textContent = code;
+    setState(true, '연결됨');
+  });
+  c.on('data', onData);
+  c.on('close', () => { if (conn !== c) return; conn = null; setState(false, '다시 연결하는 중…'); retry(); });
+  c.on('error', retry);
+}
+
+function retry(){
+  if (!wantConnect) return;
+  clearTimeout(retryTimer);
+  retryTimer = setTimeout(() => { if (conn && conn.open) return; connect(); }, 2000);
+}
+
+function setState(on, text){ $('#state').textContent = text; $('#top').classList.toggle('off', !on); }
+function send(m){ if (conn && conn.open) try{ conn.send(m); }catch(e){} }
+
+function onData(d){
+  if (!d || typeof d !== 'object') return;
+  if (d.t === 'pad'){
+    mode = d.pad || 'home';
+    $('#pad').dataset.mode = mode;
+    $('#pTitle').textContent = d.title || '';
+    $('#pHint').textContent = d.hint || '';
+    $('#aLabel').textContent = A_LABEL[mode] || 'A';
+    $('#bLabel').textContent = mode === 'home' ? '뒤로' : '길게 누르면 홈';
+  } else if (d.t === 'ping') send({ t: 'pong', ts: d.ts });
+}
+
+/* 버튼: 누를 때와 뗄 때를 모두 보냄 */
+document.querySelectorAll('[data-k]').forEach(b => {
+  const k = b.dataset.k;
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    try{ b.setPointerCapture(e.pointerId); }catch(_){}
+    b.classList.add('on');
+    send({ t: 'btn', k, down: true });
+    if (navigator.vibrate) navigator.vibrate(12);
+  });
+  const up = () => {
+    if (!b.classList.contains('on')) return;
+    b.classList.remove('on');
+    send({ t: 'btn', k, down: false });
+  };
+  b.addEventListener('pointerup', up);
+  b.addEventListener('pointercancel', up);
+  b.addEventListener('lostpointercapture', up);
+  b.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+/* 조준: 조준형 게임일 때만 기울기를 보냄 */
+addEventListener('deviceorientation', e => {
+  if (e.alpha == null) return;
+  lastO = { a: e.alpha, b: e.beta, g: e.gamma };
+  if (mode !== 'motion') return;
+  const t = performance.now();
+  if (t - lastSent < 15) return;
+  lastSent = t;
+  send(Object.assign({ t: 'o' }, lastO));
+});
+$('#btnCal').addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (lastO) send({ t: 'cal', a: lastO.a, b: lastO.b });
+  const b = $('#btnCal'); b.classList.add('flash');
+  setTimeout(() => b.classList.remove('flash'), 250);
+  if (navigator.vibrate) navigator.vibrate(20);
+});
+
+/* 화면 꺼짐 방지 */
+async function keepAwake(){ try{ if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); }catch(e){} }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && wantConnect) keepAwake(); });
+</script>
+</body>
+</html>
