@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#060b18"><meta name="description" content="휴대폰으로 전방의 적을 조준하는 3D 우주 방어전"><title>ORBIT DEFENSE 3D — 전방 방어전</title><link rel="stylesheet" href="styles.css"></head>
+<body class="display-page">
+<main class="arena" id="arena">
+  <canvas id="gameCanvas" aria-label="반시계 방향으로 태양계를 순항하는 아군 함대와 전방의 적 우주선"></canvas>
+  <div class="cockpit-vignette" aria-hidden="true"></div>
+  <header class="toolbar">
+    <strong class="brand">ORBIT<span>DEFENSE / 3D</span></strong>
+    <div class="hud" aria-label="게임 상태"><div><span>SCORE</span><b id="scoreValue">00000</b></div><div><span>TIME</span><b id="timeValue">60</b></div><div class="shield-stat"><span>BASE SHIELD</span><b id="livesValue" aria-label="방어력 5">●●●●●</b></div></div>
+    <div class="actions"><button id="autoFire" aria-pressed="true">자동 사격 켜짐</button><button id="pauseGame" disabled>일시정지</button><button id="soundButton" aria-pressed="false">소리 켜기</button></div>
+  </header>
+  <div class="aim" id="aim" hidden aria-label="휴대폰 조준점"><span></span></div>
+  <div class="combo-label" id="comboLabel" hidden></div>
+  <aside class="flight-readout" aria-label="전방 전투 정보"><span>VANGUARD / FLEET 01</span><strong id="targetReadout">전방 스캔 중</strong><small id="rangeReadout">함대 전진 · 반시계 순항</small></aside>
+  <aside class="solar-nav" aria-label="태양계 북쪽에서 내려다본 반시계 순항 지도">
+    <svg viewBox="0 0 128 128" aria-hidden="true"><g class="nav-orbits" fill="none"><circle cx="64" cy="64" r="9"/><circle cx="64" cy="64" r="18"/><circle cx="64" cy="64" r="26"/><circle cx="64" cy="64" r="38"/><circle cx="64" cy="64" r="43"/></g><circle class="nav-route" cx="64" cy="64" r="50"/><circle cx="64" cy="64" r="4" fill="#ffd291"/>
+      <g fill="#c5dae5"><circle id="map-mercury" r="1.6"/><circle id="map-venus" r="2"/><circle id="map-earth" r="2.2" fill="#69baff"/><circle id="map-mars" r="1.8" fill="#de9574"/><circle id="map-jupiter" r="3"/><circle id="map-saturn" r="2.8"/><circle id="map-uranus" r="2.2"/><circle id="map-neptune" r="2.2"/></g>
+      <g id="fleetMapMarker"><circle cx="114" cy="64" r="6" fill="#96ffce22"/><path d="M 114 58 L 110 68 L 114 66 L 118 68 Z" fill="#96ffce"/></g>
+    </svg><div><span>SOLAR CRUISE / ↺ CCW</span><strong id="voyageReadout">태양계 순항 중</strong><small id="voyageProgress">항로 진행 0%</small><small>게임용 축척 · 북극 방향 기준</small></div>
+  </aside>
+  <section class="game-card" id="gameCard" aria-labelledby="gameTitle">
+    <span class="eyebrow" id="gameEyebrow">IMMERSIVE 3D / FORWARD DEFENSE</span>
+    <h1 id="gameTitle">전방을 지켜라.</h1>
+    <p id="gameHelp">먼 우주에서 접근하는 적을 격추하세요.<br>적을 겨누면 자동으로 발사합니다.</p>
+    <div class="result-stats" id="resultStats" hidden><div><span>최종 점수</span><b id="finalScore">0</b></div><div><span>격추</span><b id="finalKills">0</b></div><div><span>명중률</span><b id="finalAccuracy">0%</b></div><div><span>최고 연속 격추</span><b id="finalCombo">0</b></div></div>
+    <button class="primary launch-button" id="startGame" disabled>폰에서 A로 출격</button>
+    <p class="game-tip" id="gameTip">폰에서 조준 맞추기를 누른 뒤 A로 출격하세요.</p>
+  </section>
+  <div class="countdown" id="countdown" hidden role="status"></div>
+  <section class="renderer-error" id="rendererError" hidden role="alert"><span class="eyebrow">GRAPHICS CHECK</span><h2>3D 화면을 확인해주세요</h2><p id="rendererMessage">그래픽 연결을 복구하는 중입니다. 복구되면 게임이 이어집니다.</p></section>
+  <footer class="status-bar"><span id="statusText" role="status">폰 조준 대기</span><span class="coordinates">X <b id="xValue">—</b> / Y <b id="yValue">—</b></span></footer>
+</main>
+<script src="../../hub-sdk.js"></script><script src="motion.js"></script><script src="input-link.js"></script><script src="space-math.js"></script><script src="game-engine.js"></script><script type="module" src="boot.js"></script>
+</body></html>
