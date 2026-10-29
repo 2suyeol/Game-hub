@@ -34,5 +34,17 @@
     "emoji": "🛡️",
     "color": "#4CC9F0",
     "padHint": "상반신과 양팔이 카메라에 보이게 서세요. A를 누르면 전투가 시작됩니다."
+  },
+  {
+    "id": "orbit",
+    "title": "오빗 디펜스",
+    "desc": "폰으로 조준해 태양계를 순항하는 함대를 60초 동안 지키세요. 3D 우주 방어전입니다.",
+    "path": "games/orbit/index.html",
+    "input": "controller",
+    "mode": "sdk",
+    "pad": "motion",
+    "emoji": "🚀",
+    "color": "#8BE36A",
+    "padHint": "폰 위쪽 끝을 화면 가운데로 향하고 조준 맞추기를 누른 뒤, A로 출격하세요."
   }
 ]
