@@ -19,20 +19,36 @@
 html,body{height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--body)}
 
 /* 홈 화면 */
-#home{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;
-  background:
-    radial-gradient(55% 45% at 22% 0%, rgba(255,200,87,.16), transparent 70%),
-    radial-gradient(45% 40% at 82% 6%, rgba(242,95,92,.12), transparent 70%),
-    linear-gradient(180deg,#172033 0%,#1c2944 55%,#26334f 100%)}
-#lights{position:absolute;top:0;left:0;width:100%;height:130px;pointer-events:none}
-header{display:flex;align-items:center;gap:20px;padding:110px 56px 0;position:relative}
+#home{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;background:#0c0f16;overflow:hidden;
+  --accent:#F25F5C; --accent2:#7B6CF6}
+#home > header, #home > main, #home > footer{position:relative;z-index:1}
+#home > #join{z-index:2}
+#bg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.glow{position:absolute;border-radius:50%;filter:blur(110px);transition:background-color 1.2s ease}
+.glow.g1{width:62vmax;height:62vmax;left:-12vmax;top:-8vmax;background-color:var(--accent);opacity:.42;animation:drift1 34s ease-in-out infinite alternate}
+.glow.g2{width:46vmax;height:46vmax;right:-14vmax;bottom:-18vmax;background-color:var(--accent2);opacity:.30;animation:drift2 41s ease-in-out infinite alternate}
+.glow.g3{width:30vmax;height:30vmax;left:38%;top:30%;background-color:var(--accent);opacity:.14;animation:drift1 27s ease-in-out infinite alternate-reverse}
+@keyframes drift1{to{transform:translate(9vmax,6vmax) scale(1.08)}}
+@keyframes drift2{to{transform:translate(-7vmax,-5vmax) scale(.94)}}
+.dots{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.07) 1px, transparent 1.2px);background-size:26px 26px;
+  -webkit-mask-image:radial-gradient(ellipse 75% 70% at 50% 45%, #000 30%, transparent 85%);
+  mask-image:radial-gradient(ellipse 75% 70% at 50% 45%, #000 30%, transparent 85%)}
+.grain{position:absolute;inset:-50%;opacity:.07;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.hero{position:absolute;right:-3vw;top:54%;font-size:50vmin;line-height:1;opacity:.24;pointer-events:none;
+  transform:translateY(-50%) rotate(-12deg);filter:saturate(1.15) drop-shadow(0 30px 60px rgba(0,0,0,.35));transition:opacity .35s ease, transform .6s ease}
+.hero.swap{opacity:0;transform:translateY(-46%) rotate(-6deg)}
+.vignette{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(0,0,0,.55) 100%)}
+header{display:flex;align-items:center;gap:20px;padding:44px 56px 0;position:relative}
 #brand{font-family:var(--display);font-size:36px}
 .spacer{flex:1}
 .status{display:flex;align-items:center;gap:10px;font-size:18px;color:var(--muted)}
 .dot{width:10px;height:10px;border-radius:50%;background:#56607a}
 .dot.on{background:var(--mint);box-shadow:0 0 12px var(--mint)}
-#codeChip{font-family:var(--display);font-size:18px;color:var(--paper);background:var(--dusk);padding:4px 12px;border-radius:999px;letter-spacing:.12em}
-#clock{font-family:var(--display);font-size:36px;font-variant-numeric:tabular-nums;margin-left:12px}
+#codeChip{font-family:var(--display);font-size:18px;color:var(--paper);background:rgba(255,255,255,.1);padding:4px 12px;border-radius:999px;letter-spacing:.12em}
+.when{text-align:right;margin-left:12px;line-height:1.05}
+#clock{font-family:var(--display);font-size:36px;font-variant-numeric:tabular-nums}
+#date{font-size:15px;color:rgba(245,241,230,.55);margin-top:4px}
 
 main{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:44px;padding:0 56px;position:relative}
 #grid{display:grid;grid-template-columns:repeat(auto-fit,180px);gap:44px 56px;justify-content:center;width:min(100%,1180px)}
@@ -42,28 +58,44 @@ main{display:flex;flex-direction:column;justify-content:center;align-items:cente
   background:var(--c);box-shadow:inset 0 -9px 0 rgba(0,0,0,.18);
   outline:4px solid transparent;outline-offset:8px;transition:transform .18s ease,outline-color .18s ease}
 .icon img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
-.badge{position:absolute;right:-8px;bottom:-8px;width:42px;height:42px;border-radius:50%;background:var(--ink);
-  display:grid;place-items:center;font-size:20px;border:3px solid var(--ink)}
+.badge{position:absolute;right:-8px;bottom:-8px;width:42px;height:42px;border-radius:50%;background:#0c0f16;
+  display:grid;place-items:center;font-size:20px;border:3px solid #0c0f16}
 .label{font-family:var(--display);font-size:22px}
-.app.sel .icon{transform:translateY(-6px) scale(1.08);outline-color:var(--lantern)}
-.app.sel .label{color:var(--lantern)}
-#detail{min-height:86px;text-align:center;max-width:40em}
+.app.sel .icon{transform:translateY(-6px) scale(1.08);outline-color:#fff;box-shadow:inset 0 -9px 0 rgba(0,0,0,.18),0 24px 60px -10px var(--c)}
+.app.sel .label{color:#fff}
+.app:not(.sel) .icon{filter:saturate(.75) brightness(.85)}
+.app:not(.sel) .label{color:rgba(245,241,230,.6)}
+#detail{min-height:132px;text-align:center;max-width:40em}
+.chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.chip{padding:7px 16px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);font-size:16px;color:rgba(245,241,230,.82)}
+.chip.best{border-color:color-mix(in srgb, var(--accent) 70%, transparent);background:color-mix(in srgb, var(--accent) 18%, transparent);color:#fff}
 #detail h2{font-family:var(--display);font-weight:400;font-size:40px}
-#detail p{color:var(--muted);font-size:20px;margin-top:8px;line-height:1.5}
+#detail p{color:rgba(245,241,230,.62);font-size:20px;margin-top:8px;line-height:1.5}
 
-footer{display:flex;justify-content:center;gap:36px;padding:0 56px 36px;color:var(--muted);font-size:18px}
-.key{display:inline-grid;place-items:center;min-width:34px;height:34px;padding:0 9px;border-radius:9px;background:var(--dusk);
+footer{display:flex;justify-content:center;gap:36px;padding:0 56px 36px;color:rgba(245,241,230,.55);font-size:18px}
+.key{display:inline-grid;place-items:center;min-width:34px;height:34px;padding:0 9px;border-radius:9px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);
   color:var(--paper);font-family:var(--display);margin-right:8px}
 
-#join{position:absolute;right:56px;bottom:96px;background:var(--paper);color:var(--ink);border-radius:26px;padding:26px 24px;
-  width:268px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+#join{position:absolute;right:56px;bottom:96px;background:rgba(255,255,255,.07);color:var(--paper);border-radius:26px;padding:26px 24px;
+  width:268px;text-align:center;border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 80px rgba(0,0,0,.45);
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
 #join h3{font-family:var(--display);font-weight:400;font-size:22px;white-space:nowrap}
-#home.waiting main{padding-right:360px}
-#qr{margin:16px auto 10px;width:180px;height:180px}
+#home.waiting main,#home.waiting footer{display:none}
+#home.waiting .hero{opacity:0}
+#home.waiting #join{position:absolute;left:50%;top:52%;right:auto;bottom:auto;transform:translate(-50%,-50%);width:min(440px,90vw);padding:36px 36px 30px}
+#home.waiting #join h3{font-size:30px}
+#home.waiting #qr{width:300px;height:300px;padding:12px;border-radius:22px;margin:22px auto 16px}
+#home.waiting #qr img,#home.waiting #qr canvas{width:276px!important;height:276px!important}
+#home.waiting #code{font-size:56px}
+#home.waiting #join p{font-size:17px}
+#home.entered main{animation:rise .6s ease both}
+#home.entered footer{animation:rise .6s .1s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+#qr{margin:16px auto 12px;width:196px;height:196px;padding:8px;background:#fff;border-radius:16px}
 #qr img,#qr canvas{width:180px!important;height:180px!important}
 #code{font-family:var(--display);font-size:46px;letter-spacing:.2em;padding-left:.2em;line-height:1.1}
-#join p{font-size:15px;color:#4a5570;line-height:1.5;margin-top:6px}
-#join .warn{color:#c0392b}
+#join p{font-size:15px;color:rgba(245,241,230,.65);line-height:1.5;margin-top:6px}
+#join .warn{color:#ff8a87}
 
 /* 게임 화면 */
 #stage{position:fixed;inset:0;background:#000;z-index:5}
@@ -85,13 +117,12 @@ footer{display:flex;justify-content:center;gap:36px;padding:0 56px 36px;color:va
 #toast.show{opacity:1}
 
 @media (max-width:900px){
-  header{padding:96px 24px 0} main{padding:0 24px}
+  header{padding:28px 24px 0} main{padding:0 24px}
   #join{position:static;margin:0 auto 20px}
-  #home.waiting main{padding-right:24px}
   #grid{grid-template-columns:repeat(auto-fit,140px);gap:32px}
   .icon{width:112px;height:112px;font-size:56px}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -99,25 +130,19 @@ footer{display:flex;justify-content:center;gap:36px;padding:0 56px 36px;color:va
 </head>
 <body>
 
-<div id="home">
-  <svg id="lights" viewBox="0 0 1600 130" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
-    <defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter></defs>
-    <path id="cable" d="M-20,6 Q400,92 800,12 Q1200,92 1620,6" fill="none" stroke="rgba(245,241,230,.22)" stroke-width="2"/>
-    <g id="bulbGlow" filter="url(#glow)" opacity=".75"></g>
-    <g id="bulbs"></g>
-  </svg>
-
+<div id="home" class="waiting">
+  <div id="bg" aria-hidden="true"><div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div><div class="dots"></div><div class="hero" id="hero"></div><div class="grain"></div><div class="vignette"></div></div>
   <header>
     <div id="brand">게임 센터</div>
     <div class="spacer"></div>
     <div class="status"><span class="dot" id="dot"></span><span id="statusText">준비 중</span></div>
     <span id="codeChip" hidden></span>
-    <div id="clock">--:--</div>
+    <div class="when"><div id="clock">--:--</div><div id="date"></div></div>
   </header>
 
   <main>
     <div id="grid" role="listbox" aria-label="게임 목록"></div>
-    <div id="detail"><h2></h2><p></p></div>
+    <div id="detail"><h2></h2><p></p><div class="chips" id="chips"></div></div>
   </main>
 
   <footer>
@@ -127,10 +152,10 @@ footer{display:flex;justify-content:center;gap:36px;padding:0 56px 36px;color:va
   </footer>
 
   <aside id="join">
-    <h3>폰으로 QR 찍기</h3>
+    <h3>QR을 찍어 시작하세요</h3>
     <div id="qr"></div>
     <div id="code">----</div>
-    <p>폰이 컨트롤러가 됩니다.<br>코드를 직접 입력해도 돼요.</p>
+    <p>폰이 컨트롤러가 되고, 연결되면 게임을 고를 수 있어요.<br>QR이 안 찍히면 아래 코드를 직접 입력하세요.</p>
     <p class="warn" id="joinWarn" hidden></p>
   </aside>
 </div>
@@ -173,25 +198,11 @@ store('hub-code', code);
 $('#code').textContent = code;
 $('#codeChip').textContent = code;
 
-/* ---------- 장식: 축제 전구 줄 ---------- */
-(function drawLights(){
-  const NS = 'http://www.w3.org/2000/svg', path = $('#cable'), L = path.getTotalLength();
-  const colors = ['#FFC857', '#F25F5C', '#6FD6C1', '#F5F1E6'];
-  for (let i = 1; i < 34; i++){
-    const p = path.getPointAtLength(L * i / 34);
-    for (const g of ['#bulbGlow', '#bulbs']){
-      const c = document.createElementNS(NS, 'circle');
-      c.setAttribute('cx', p.x); c.setAttribute('cy', p.y + 9);
-      c.setAttribute('r', g === '#bulbs' ? 6 : 11); c.setAttribute('fill', colors[i % 4]);
-      $(g).append(c);
-    }
-  }
-})();
-
 /* ---------- 시계 ---------- */
 function tick(){
   const d = new Date();
   $('#clock').textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  $('#date').textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 ${'일월화수목금토'[d.getDay()]}요일`;
 }
 tick(); setInterval(tick, 10000);
 
@@ -251,9 +262,31 @@ function select(i){
     el.setAttribute('aria-selected', k === sel);
   });
   const g = games[sel];
+  const home = $('#home');
+  home.style.setProperty('--accent', g.color || '#6FD6C1');
+  home.style.setProperty('--accent2', (games[(sel + 1) % games.length] || g).color || '#6FD6C1');
   $('#detail h2').textContent = g.title;
-  $('#detail p').textContent = (g.desc ? g.desc + ' ' : '') +
-    (g.input === 'camera' ? '카메라 앞에서 몸으로 하는 게임입니다.' : '폰을 컨트롤러로 쓰는 게임입니다.');
+  $('#detail p').textContent = g.desc || '';
+  // 배경 그림: 고른 게임의 아이콘을 크게 흐리게
+  const hero = $('#hero');
+  if (hero.dataset.id !== g.id){
+    hero.classList.add('swap');
+    clearTimeout(hero._t);
+    hero._t = setTimeout(() => { hero.textContent = g.emoji || '🎮'; hero.dataset.id = g.id; hero.classList.remove('swap'); }, 250);
+  }
+  // 정보 칩: 조작 방식 + 이 게임의 최고 기록
+  const chips = $('#chips'); chips.innerHTML = '';
+  const add = (text, cls) => { const c = document.createElement('span'); c.className = 'chip' + (cls ? ' ' + cls : ''); c.textContent = text; chips.append(c); };
+  add(g.input === 'camera' ? '📷 카메라로 플레이' : '📱 폰으로 플레이');
+  const best = bestScore(g.id);
+  add(best != null ? `🏆 최고 기록 ${best.toLocaleString()}점` : '🏆 아직 기록이 없어요', 'best');
+}
+
+function bestScore(id){
+  try{
+    const list = JSON.parse(store('hub-scores') || '[]').filter(r => r.game === id && typeof r.score === 'number');
+    return list.length ? Math.max(...list.map(r => r.score)) : null;
+  }catch(e){ return null; }
 }
 
 function cols(){
@@ -271,12 +304,19 @@ function move(dx, dy){
 }
 
 /* ---------- 폰 연결 (PeerJS) ---------- */
+let bypass = false, lastOn = false;
 function setStatus(on, text){
+  lastOn = on;
   $('#dot').classList.toggle('on', on);
-  $('#statusText').textContent = text;
-  $('#join').hidden = on;
-  $('#home').classList.toggle('waiting', !on);
-  $('#codeChip').hidden = !on;
+  if (text) $('#statusText').textContent = text;
+  const home = $('#home'), gate = !on && !bypass, was = home.classList.contains('waiting');
+  $('#join').hidden = !gate;
+  home.classList.toggle('waiting', gate);
+  $('#codeChip').hidden = gate;
+  if (was && !gate){                      // QR 화면 → 홈 화면으로 넘어갈 때 살짝 올라오며 등장
+    home.classList.remove('entered'); void home.offsetWidth; home.classList.add('entered');
+    if (games.length) select(sel);
+  }
 }
 function lostBanner(show){
   const el = $('#lost');
@@ -308,6 +348,7 @@ function startPeer(){
     conn = c;
     c.on('open', () => {
       if (conn !== c) return;
+      bypass = false;
       setStatus(true, '컨트롤러 연결됨');
       lostBanner(false); sendPad();
       toGame({ type: 'controller', connected: true });
@@ -438,6 +479,7 @@ function exitGame(msg){
   cursor.style.display = 'none'; ring.style.display = 'none';
   hideLoading(); lostBanner(false);
   $('#home').hidden = false;
+  select(sel);
   setTimeout(() => {
     if (current) return;                        // 그 사이 다른 게임을 켰으면 건드리지 않음
     frame.src = 'about:blank';
@@ -543,6 +585,10 @@ requestAnimationFrame(loop);
 /* ---------- 진행자용 키보드 ---------- */
 addEventListener('keydown', e => {
   if (current){ if (e.key === 'Escape') exitGame('홈으로 돌아왔습니다'); return; }
+  if ($('#home').classList.contains('waiting')){
+    if (e.key === 'Enter'){ bypass = true; setStatus(lastOn); toast('폰 없이 홈 화면으로 들어왔습니다'); }
+    return;
+  }
   const m = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
   if (m){ e.preventDefault(); move(m[0], m[1]); }
   else if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); launch(games[sel]); }
@@ -553,7 +599,7 @@ addEventListener('keydown', e => {
   const base = C.controllerURL || new URL('controller.html', location.href).href.split('?')[0];
   const url = base + '?code=' + code;
   if (typeof QRCode !== 'undefined'){
-    new QRCode($('#qr'), { text: url, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
+    new QRCode($('#qr'), { text: url, width: 276, height: 276, correctLevel: QRCode.CorrectLevel.M });
   }
   const warn = $('#joinWarn');
   if (location.protocol === 'file:'){
