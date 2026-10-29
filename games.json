@@ -22,5 +22,17 @@
     "emoji": "⚔️",
     "color": "#FF2D95",
     "padHint": "카메라에서 2~3m 떨어져 서세요. A를 누르면 시작합니다."
+  },
+  {
+    "id": "boss",
+    "title": "보스 패링",
+    "desc": "팔을 옆으로 휘둘러 공격하고, PARRY 신호가 뜨면 팔을 위로 흔들어 막으세요.",
+    "path": "games/boss/index.html",
+    "input": "camera",
+    "mode": "sdk",
+    "pad": "camera",
+    "emoji": "🛡️",
+    "color": "#4CC9F0",
+    "padHint": "상반신과 양팔이 카메라에 보이게 서세요. A를 누르면 전투가 시작됩니다."
   }
 ]
