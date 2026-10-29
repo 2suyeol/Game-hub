@@ -1,0 +1,1152 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>보스 패링</title>
+  <script src="../../hub-sdk.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101317;
+      --panel: #191f25;
+      --panel-2: #222a31;
+      --line: #34404a;
+      --text: #eef4f6;
+      --muted: #93a4ad;
+      --accent: #3ddc97;
+      --warn: #ffd166;
+      --danger: #ef476f;
+      --blue: #4cc9f0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(76, 201, 240, 0.12), transparent 34rem),
+        linear-gradient(180deg, #12181d, var(--bg));
+      color: var(--text);
+      font-family: Inter, Pretendard, "Segoe UI", system-ui, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) minmax(420px, 1fr);
+      min-height: 100vh;
+    }
+
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px;
+      background: rgba(16, 19, 23, 0.72);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .stage.parry-ready {
+      box-shadow: inset 0 0 0 8px rgba(76, 201, 240, 0.8);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 58px);
+      line-height: 0.95;
+      max-width: 12ch;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+
+    .eyebrow {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .card {
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 8px;
+      background: rgba(25, 31, 37, 0.88);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .value {
+      min-width: 4.5rem;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn {
+      min-height: 42px;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      color: #06120d;
+      border-color: transparent;
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .camera-wrap {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #050708;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    video,
+    #motionCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    #motionCanvas {
+      opacity: 0.72;
+    }
+
+    .camera-hint {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.52);
+      color: #d8e3e7;
+      font-size: 12px;
+    }
+
+    .meter {
+      display: grid;
+      gap: 8px;
+    }
+
+    .bar {
+      position: relative;
+      height: 14px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #0b0f12;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .fill {
+      width: 0%;
+      height: 100%;
+      background: var(--accent);
+      transition: width 90ms linear;
+    }
+
+    .fill.parry {
+      background: var(--blue);
+    }
+
+    .fill.danger {
+      background: var(--danger);
+    }
+
+    .arena {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .boss {
+      position: relative;
+      width: min(44vw, 430px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      filter: drop-shadow(0 26px 52px rgba(0, 0, 0, 0.42));
+    }
+
+    .boss-core {
+      position: absolute;
+      width: 46%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 44% 34%, #fff 0 4%, #82ffe0 5% 10%, transparent 11%),
+        radial-gradient(circle at center, #47ffc0 0 19%, #177c72 20% 43%, #10181d 44% 100%);
+      border: 4px solid #72ffe0;
+      box-shadow: 0 0 46px rgba(61, 220, 151, 0.58);
+      animation: float 2.8s ease-in-out infinite;
+    }
+
+    .boss-ring {
+      position: absolute;
+      width: 78%;
+      aspect-ratio: 1;
+      border: 6px solid rgba(76, 201, 240, 0.85);
+      border-left-color: transparent;
+      border-bottom-color: rgba(239, 71, 111, 0.82);
+      border-radius: 50%;
+      animation: spin 5s linear infinite;
+    }
+
+    .boss-ring.outer {
+      width: 100%;
+      border-width: 3px;
+      border-color: rgba(255, 209, 102, 0.8) transparent rgba(76, 201, 240, 0.85);
+      animation-duration: 8s;
+      animation-direction: reverse;
+    }
+
+    .boss.attacking .boss-core {
+      border-color: var(--danger);
+      box-shadow: 0 0 68px rgba(239, 71, 111, 0.9);
+    }
+
+    .boss.parry-ready .boss-core {
+      border-color: #eaffff;
+      box-shadow: 0 0 86px rgba(76, 201, 240, 0.95);
+      animation: float 2.8s ease-in-out infinite, parryPulse 560ms ease-in-out infinite;
+    }
+
+    .boss.parry-ready .boss-ring {
+      border-color: #eaffff var(--blue) #eaffff var(--blue);
+      animation-duration: 900ms;
+    }
+
+    .slash {
+      position: absolute;
+      width: 58vw;
+      max-width: 720px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, #fff, var(--accent), transparent);
+      opacity: 0;
+      transform: rotate(-9deg) scaleX(0.5);
+    }
+
+    .slash.show {
+      animation: slash 260ms ease-out;
+    }
+
+    .shield {
+      position: absolute;
+      width: min(46vw, 450px);
+      aspect-ratio: 1;
+      border: 6px solid rgba(76, 201, 240, 0.88);
+      border-radius: 50%;
+      opacity: 0;
+      transform: scale(0.75);
+      box-shadow: inset 0 0 42px rgba(76, 201, 240, 0.32), 0 0 46px rgba(76, 201, 240, 0.35);
+    }
+
+    .shield.show {
+      animation: shield 380ms ease-out;
+    }
+
+    .parry-beacon {
+      position: absolute;
+      width: min(58vw, 560px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      opacity: 0;
+      transform: scale(0.68);
+      border: 5px solid rgba(76, 201, 240, 0.88);
+      box-shadow: 0 0 70px rgba(76, 201, 240, 0.46), inset 0 0 42px rgba(76, 201, 240, 0.22);
+    }
+
+    .stage.parry-ready .parry-beacon {
+      opacity: 1;
+      animation: beacon 620ms ease-in-out infinite;
+    }
+
+    .hud {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      max-width: 920px;
+    }
+
+    .stat {
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(16, 19, 23, 0.74);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .stat b {
+      display: block;
+      margin-top: 2px;
+      font-size: 22px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .boss-health {
+      position: relative;
+      z-index: 2;
+      max-width: 920px;
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(16, 19, 23, 0.74);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .signal {
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      top: 15%;
+      width: min(72vw, 720px);
+      translate: -50% 0;
+      padding: 16px 20px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(8, 11, 13, 0.82);
+      text-align: center;
+      font-size: clamp(24px, 5vw, 64px);
+      font-weight: 900;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .signal.on {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .signal.parry {
+      color: #061215;
+      background: #86f7ff;
+      border-color: #eaffff;
+      box-shadow: 0 0 54px rgba(76, 201, 240, 0.72);
+      animation: parrySignal 520ms ease-in-out infinite;
+    }
+
+    .signal.danger {
+      color: var(--danger);
+      box-shadow: 0 0 40px rgba(239, 71, 111, 0.28);
+    }
+
+    .log {
+      min-height: 78px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .stage-message {
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      top: calc(50% + min(24vw, 230px));
+      width: min(78vw, 760px);
+      translate: -50% 0;
+      padding: 14px 18px;
+      border-radius: 8px;
+      background: rgba(6, 9, 11, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #e8f2f4;
+      text-align: center;
+      font-size: clamp(16px, 2.2vw, 24px);
+      font-weight: 800;
+      line-height: 1.35;
+      pointer-events: none;
+    }
+
+    .hearts {
+      display: flex;
+      gap: 5px;
+      min-height: 28px;
+      align-items: center;
+    }
+
+    .heart {
+      position: relative;
+      width: 18px;
+      height: 18px;
+      transform: rotate(45deg);
+      background: var(--danger);
+      border-radius: 4px 4px 2px 2px;
+      box-shadow: 0 0 16px rgba(239, 71, 111, 0.42);
+    }
+
+    .heart::before,
+    .heart::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: inherit;
+    }
+
+    .heart::before {
+      left: -9px;
+    }
+
+    .heart::after {
+      top: -9px;
+    }
+
+    .heart.empty {
+      background: #39434b;
+      box-shadow: none;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @keyframes spin {
+      to {
+        rotate: 360deg;
+      }
+    }
+
+    @keyframes float {
+      50% {
+        translate: 0 -12px;
+      }
+    }
+
+    @keyframes slash {
+      0% {
+        opacity: 0;
+        transform: rotate(-9deg) scaleX(0.25);
+      }
+      38% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: rotate(-9deg) scaleX(1.05);
+      }
+    }
+
+    @keyframes shield {
+      0% {
+        opacity: 0;
+        transform: scale(0.7);
+      }
+      35% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.1);
+      }
+    }
+
+    @keyframes parryPulse {
+      50% {
+        transform: scale(1.08);
+      }
+    }
+
+    @keyframes beacon {
+      50% {
+        opacity: 0.36;
+        transform: scale(1.08);
+      }
+    }
+
+    @keyframes parrySignal {
+      50% {
+        transform: translateY(0) scale(1.04);
+      }
+    }
+
+    @media (max-width: 860px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        border-right: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .stage {
+        min-height: 66vh;
+      }
+
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .boss {
+        width: min(72vw, 390px);
+      }
+
+      .stage-message {
+        top: calc(50% + min(38vw, 210px));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="side">
+      <div>
+        <div class="eyebrow">Webcam Action Prototype</div>
+        <h1>Motion Boss Parry</h1>
+      </div>
+
+      <section class="card">
+        <h2>카메라</h2>
+        <div class="camera-wrap">
+          <video id="video" playsinline muted></video>
+          <canvas id="motionCanvas"></canvas>
+          <div class="camera-hint" id="cameraHint">시작을 누르면 웹캠 권한을 요청합니다.</div>
+        </div>
+      </section>
+
+      <section class="card controls">
+        <h2>감도</h2>
+        <div>
+          <div class="row">
+            <span class="label">옆 휘두르기</span>
+            <span class="value" id="slashSenseValue">34</span>
+          </div>
+          <input id="slashSense" type="range" min="24" max="95" value="52">
+        </div>
+        <div>
+          <div class="row">
+            <span class="label">위로 패링</span>
+            <span class="value" id="parrySenseValue">26</span>
+          </div>
+          <input id="parrySense" type="range" min="14" max="70" value="26">
+        </div>
+        <div>
+          <div class="row">
+            <span class="label">보스 속도</span>
+            <span class="value" id="speedValue">1.0x</span>
+          </div>
+          <input id="speed" type="range" min="70" max="150" value="100">
+        </div>
+        <div class="btns">
+          <button class="btn primary" id="startBtn">시작</button>
+          <button class="btn" id="resetBtn">리셋</button>
+        </div>
+        <p class="small">옆으로 크게 휘두르면 공격, 화면에 “PARRY”가 뜰 때 팔을 위로 흔들면 방어합니다. 실제 포즈 AI 대신 프레임 움직임을 쓰는 가벼운 프로토타입입니다.</p>
+      </section>
+
+      <section class="card">
+        <h2>동작 신호</h2>
+        <div class="meter">
+          <div class="row"><span class="label">Slash motion</span><span class="value" id="slashValue">0</span></div>
+          <div class="bar"><div class="fill" id="slashFill"></div></div>
+          <div class="row"><span class="label">Parry motion</span><span class="value" id="parryValue">0</span></div>
+          <div class="bar"><div class="fill parry" id="parryFill"></div></div>
+          <div class="row"><span class="label">Incoming attack</span><span class="value" id="attackValue">0%</span></div>
+          <div class="bar"><div class="fill danger" id="attackFill"></div></div>
+        </div>
+      </section>
+
+      <section class="card log" id="log">대기 중입니다. 카메라 앞에서 상반신과 양팔이 보이게 서 주세요.</section>
+    </aside>
+
+    <section class="stage" id="stage">
+      <div class="hud">
+        <div class="stat"><span class="label">Score</span><b id="score">0</b></div>
+        <div class="stat"><span class="label">HP</span><div class="hearts" id="playerHp"></div></div>
+        <div class="stat"><span class="label">Combo</span><b id="combo">0</b></div>
+        <div class="stat"><span class="label">State</span><b id="state">Ready</b></div>
+      </div>
+
+      <div class="boss-health">
+        <div class="row"><span class="label">Boss HP</span><span class="value" id="bossHpText">100 / 100</span></div>
+        <div class="bar"><div class="fill danger" id="bossHpFill" style="width: 100%"></div></div>
+      </div>
+
+      <div class="signal" id="signal">PARRY</div>
+      <div class="arena">
+        <div class="slash" id="slashFx"></div>
+        <div class="shield" id="shieldFx"></div>
+        <div class="parry-beacon" id="parryBeacon"></div>
+        <div class="boss" id="boss">
+          <div class="boss-ring outer"></div>
+          <div class="boss-ring"></div>
+          <div class="boss-core"></div>
+        </div>
+      </div>
+      <div class="stage-message" id="stageMessage">시작을 누르고 카메라 앞에서 준비하세요.</div>
+    </section>
+  </main>
+
+  <script>
+    const video = document.getElementById("video");
+    const motionCanvas = document.getElementById("motionCanvas");
+    const ctx = motionCanvas.getContext("2d", { willReadFrequently: true });
+    const startBtn = document.getElementById("startBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const cameraHint = document.getElementById("cameraHint");
+    const logBox = document.getElementById("log");
+    const slashSense = document.getElementById("slashSense");
+    const parrySense = document.getElementById("parrySense");
+    const speed = document.getElementById("speed");
+
+    const ui = {
+      slashSenseValue: document.getElementById("slashSenseValue"),
+      parrySenseValue: document.getElementById("parrySenseValue"),
+      speedValue: document.getElementById("speedValue"),
+      slashValue: document.getElementById("slashValue"),
+      parryValue: document.getElementById("parryValue"),
+      attackValue: document.getElementById("attackValue"),
+      slashFill: document.getElementById("slashFill"),
+      parryFill: document.getElementById("parryFill"),
+      attackFill: document.getElementById("attackFill"),
+      score: document.getElementById("score"),
+      playerHp: document.getElementById("playerHp"),
+      combo: document.getElementById("combo"),
+      state: document.getElementById("state"),
+      bossHpText: document.getElementById("bossHpText"),
+      bossHpFill: document.getElementById("bossHpFill"),
+      stage: document.getElementById("stage"),
+      stageMessage: document.getElementById("stageMessage"),
+      signal: document.getElementById("signal"),
+      boss: document.getElementById("boss"),
+      slashFx: document.getElementById("slashFx"),
+      shieldFx: document.getElementById("shieldFx")
+    };
+
+    const detector = {
+      width: 160,
+      height: 120,
+      previous: null,
+      history: [],
+      slashScore: 0,
+      parryScore: 0,
+      lastSlashAt: 0,
+      lastParryAt: 0,
+      slashStreak: 0,
+      parryStreak: 0,
+      slashArmed: true,
+      parryArmed: true
+    };
+
+    const game = {
+      running: false,
+      score: 0,
+      combo: 0,
+      hp: 3,
+      maxHp: 3,
+      bossHp: 100,
+      maxBossHp: 100,
+      attackStartedAt: 0,
+      attackDuration: 2600,
+      nextAttackAt: 0,
+      parryWindowStart: 0,
+      parryWindowEnd: 0,
+      attackResolved: false,
+      finished: false
+    };
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function now() {
+      return performance.now();
+    }
+
+    function setLog(text) {
+      logBox.textContent = text;
+      ui.stageMessage.textContent = text;
+    }
+
+    function updateRangeLabels() {
+      ui.slashSenseValue.textContent = slashSense.value;
+      ui.parrySenseValue.textContent = parrySense.value;
+      ui.speedValue.textContent = `${(Number(speed.value) / 100).toFixed(1)}x`;
+    }
+
+    function resetGame() {
+      Object.assign(game, {
+        running: false,
+        score: 0,
+        combo: 0,
+        hp: 3,
+        maxHp: 3,
+        bossHp: 100,
+        attackStartedAt: 0,
+        nextAttackAt: now() + 1800,
+        parryWindowStart: 0,
+        parryWindowEnd: 0,
+        attackResolved: false,
+        finished: false
+      });
+      detector.lastSlashAt = 0;
+      detector.lastParryAt = 0;
+      detector.slashStreak = 0;
+      detector.parryStreak = 0;
+      detector.slashArmed = true;
+      detector.parryArmed = true;
+      ui.signal.className = "signal";
+      ui.stage.classList.remove("parry-ready");
+      ui.boss.classList.remove("attacking", "parry-ready");
+      startBtn.textContent = "시작";
+      renderHud();
+      setLog("리셋되었습니다. 시작을 누르고 보스의 공격 신호를 기다리세요.");
+    }
+
+    function renderHud() {
+      ui.score.textContent = game.score;
+      ui.playerHp.innerHTML = "";
+      for (let i = 0; i < game.maxHp; i += 1) {
+        const heart = document.createElement("span");
+        heart.className = `heart${i >= game.hp ? " empty" : ""}`;
+        ui.playerHp.appendChild(heart);
+      }
+      ui.combo.textContent = game.combo;
+      ui.state.textContent = game.finished ? (game.bossHp <= 0 ? "Clear" : "Down") : (game.running ? "Fight" : "Ready");
+      ui.bossHpText.textContent = `${Math.max(0, game.bossHp)} / ${game.maxBossHp}`;
+      ui.bossHpFill.style.width = `${clamp(game.bossHp / game.maxBossHp, 0, 1) * 100}%`;
+    }
+
+    function flash(element, className) {
+      element.classList.remove(className);
+      void element.offsetWidth;
+      element.classList.add(className);
+    }
+
+    function doSlash() {
+      if (!game.running || game.finished) return;
+      if (now() - detector.lastSlashAt < 520) return;
+      detector.lastSlashAt = now();
+      const damage = game.attackStartedAt ? 4 : 7;
+      game.bossHp = Math.max(0, game.bossHp - damage);
+      game.combo += 1;
+      game.score += 100 + game.combo * 8;
+      flash(ui.slashFx, "show");
+      setLog(`공격 성공: 보스에게 ${damage} 데미지. 패링 대기 중에는 공격력이 조금 줄어듭니다.`);
+      if (game.bossHp <= 0) {
+        game.finished = true;
+        game.running = false;
+        game.attackStartedAt = 0;
+        ui.signal.className = "signal";
+        ui.stage.classList.remove("parry-ready");
+        ui.boss.classList.remove("attacking", "parry-ready");
+        setLog("클리어! 보스를 쓰러뜨렸습니다.");
+      }
+      renderHud();
+    }
+
+    function doParry() {
+      if (!game.running || game.finished) return;
+      if (now() - detector.lastParryAt < 620) return;
+      detector.lastParryAt = now();
+
+      const t = now();
+      if (t >= game.parryWindowStart && t <= game.parryWindowEnd && !game.attackResolved) {
+        game.attackResolved = true;
+        game.attackStartedAt = 0;
+        game.nextAttackAt = t + 1600 + Math.random() * 1200;
+        game.combo += 2;
+        game.score += 260 + game.combo * 12;
+        ui.signal.className = "signal";
+        ui.stage.classList.remove("parry-ready");
+        ui.boss.classList.remove("attacking", "parry-ready");
+        flash(ui.shieldFx, "show");
+        setLog("패링 성공! 보스 공격을 막고 반격 기회를 만들었습니다.");
+      } else {
+        game.combo = 0;
+        setLog("패링 타이밍이 아닙니다. PARRY 신호가 뜬 순간 위로 흔드세요.");
+      }
+      renderHud();
+    }
+
+    function startAttack(t) {
+      const speedRatio = Number(speed.value) / 100;
+      game.attackDuration = Math.round(2600 / speedRatio);
+      game.attackStartedAt = t;
+      game.parryWindowStart = t + game.attackDuration * 0.54;
+      game.parryWindowEnd = t + game.attackDuration * 0.82;
+      game.attackResolved = false;
+      ui.boss.classList.add("attacking");
+      ui.stage.classList.remove("parry-ready");
+      ui.boss.classList.remove("parry-ready");
+      ui.signal.textContent = "WATCH";
+      ui.signal.className = "signal danger on";
+      setLog("보스가 공격을 준비합니다. 곧 PARRY 신호가 뜹니다.");
+    }
+
+    function resolveAttack(t) {
+      if (!game.attackStartedAt || game.attackResolved) return;
+      if (t < game.attackStartedAt + game.attackDuration) return;
+      game.attackResolved = true;
+      game.attackStartedAt = 0;
+      game.nextAttackAt = t + 1900 + Math.random() * 1300;
+      game.hp -= 1;
+      game.combo = 0;
+      ui.signal.className = "signal";
+      ui.stage.classList.remove("parry-ready");
+      ui.boss.classList.remove("attacking", "parry-ready");
+      setLog("피격! 패링 타이밍을 놓쳤습니다.");
+      if (game.hp <= 0) {
+        game.finished = true;
+        game.running = false;
+        setLog("게임 오버. 리셋 후 다시 도전하세요.");
+      }
+      renderHud();
+    }
+
+    function updateAttack(t) {
+      if (!game.running || game.finished) return;
+      if (!game.attackStartedAt && t >= game.nextAttackAt) startAttack(t);
+
+      if (game.attackStartedAt) {
+        const progress = clamp((t - game.attackStartedAt) / game.attackDuration, 0, 1);
+        ui.attackValue.textContent = `${Math.round(progress * 100)}%`;
+        ui.attackFill.style.width = `${progress * 100}%`;
+
+        if (t >= game.parryWindowStart && t <= game.parryWindowEnd) {
+          ui.signal.textContent = "PARRY";
+          ui.signal.className = "signal parry on";
+          ui.stage.classList.add("parry-ready");
+          ui.boss.classList.add("parry-ready");
+        } else if (t < game.parryWindowStart) {
+          ui.signal.textContent = "WATCH";
+          ui.signal.className = "signal danger on";
+          ui.stage.classList.remove("parry-ready");
+          ui.boss.classList.remove("parry-ready");
+        } else {
+          ui.signal.textContent = "IMPACT";
+          ui.signal.className = "signal danger on";
+          ui.stage.classList.remove("parry-ready");
+          ui.boss.classList.remove("parry-ready");
+        }
+        resolveAttack(t);
+      } else {
+        ui.attackValue.textContent = "0%";
+        ui.attackFill.style.width = "0%";
+      }
+    }
+
+    function sampleMotion() {
+      if (video.readyState < 2) return;
+      const w = detector.width;
+      const h = detector.height;
+      if (motionCanvas.width !== w || motionCanvas.height !== h) {
+        motionCanvas.width = w;
+        motionCanvas.height = h;
+      }
+
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, -w, 0, w, h);
+      ctx.restore();
+
+      const frame = ctx.getImageData(0, 0, w, h);
+      const data = frame.data;
+      if (!detector.previous) {
+        detector.previous = new Uint8ClampedArray(data);
+        return;
+      }
+
+      let count = 0;
+      let sumX = 0;
+      let sumY = 0;
+      let upperCount = 0;
+      let sideCount = 0;
+      let leftCount = 0;
+      let rightCount = 0;
+      let minX = w;
+      let maxX = 0;
+      let minY = h;
+      let maxY = 0;
+      const overlay = ctx.createImageData(w, h);
+
+      for (let y = 10; y < h - 6; y += 2) {
+        for (let x = 6; x < w - 6; x += 2) {
+          const i = (y * w + x) * 4;
+          const dr = Math.abs(data[i] - detector.previous[i]);
+          const dg = Math.abs(data[i + 1] - detector.previous[i + 1]);
+          const db = Math.abs(data[i + 2] - detector.previous[i + 2]);
+          const diff = (dr + dg + db) / 3;
+          if (diff > 28) {
+            count += 1;
+            sumX += x;
+            sumY += y;
+            if (y < h * 0.48) upperCount += 1;
+            if (x < w * 0.36 || x > w * 0.64) sideCount += 1;
+            if (x < w * 0.42) leftCount += 1;
+            if (x > w * 0.58) rightCount += 1;
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+            overlay.data[i] = 76;
+            overlay.data[i + 1] = 201;
+            overlay.data[i + 2] = 240;
+            overlay.data[i + 3] = 175;
+          }
+        }
+      }
+
+      ctx.putImageData(overlay, 0, 0);
+      detector.previous.set(data);
+
+      if (count < 4) {
+        detector.slashScore *= 0.82;
+        detector.parryScore *= 0.82;
+        detector.slashStreak = 0;
+        detector.parryStreak = 0;
+        detector.slashArmed = detector.slashScore < Number(slashSense.value) * 0.45;
+        detector.parryArmed = detector.parryScore < Number(parrySense.value) * 0.45;
+        return;
+      }
+
+      const center = { x: sumX / count, y: sumY / count, count, upperCount, sideCount, leftCount, rightCount, minX, maxX, minY, maxY };
+      const last = detector.history[detector.history.length - 1] || center;
+      detector.history.push(center);
+      if (detector.history.length > 8) detector.history.shift();
+
+      const dx = center.x - last.x;
+      const dy = center.y - last.y;
+      const motionAmount = Math.sqrt(dx * dx + dy * dy) * Math.min(count / 120, 1.8);
+      const sideRatio = sideCount / count;
+      const upperRatio = upperCount / count;
+      const leftRatio = leftCount / count;
+      const rightRatio = rightCount / count;
+      const horizontalSpan = maxX - minX;
+      const verticalSpan = maxY - minY;
+      const recent = detector.history.slice(-5);
+      const travelX = recent.length > 1
+        ? Math.max(...recent.map((point) => point.x)) - Math.min(...recent.map((point) => point.x))
+        : 0;
+      const travelY = recent.length > 1
+        ? Math.max(...recent.map((point) => point.y)) - Math.min(...recent.map((point) => point.y))
+        : 0;
+
+      const horizontalDominance = Math.abs(dx) > Math.abs(dy) * 1.55 && travelX > travelY * 1.35;
+      const sideWeighted = sideRatio > 0.42 || leftRatio > 0.38 || rightRatio > 0.38;
+      const wideEnough = horizontalSpan > w * 0.24 && horizontalSpan > verticalSpan * 0.72;
+      const fastEnough = Math.abs(dx) > 2.4 || travelX > 8.5;
+      const slashGesture = horizontalDominance && sideWeighted && wideEnough && fastEnough && count > 18;
+      const lateral = slashGesture
+        ? Math.abs(dx) * 5.4 + travelX * 2.1 + sideRatio * 18 + motionAmount * 0.45
+        : Math.abs(dx) * 1.2 + sideRatio * 7;
+      const upward = Math.max(0, -dy) * 5.4 + upperRatio * 18 + motionAmount * 0.3;
+      detector.slashScore = detector.slashScore * 0.64 + lateral * 0.36;
+      detector.parryScore = detector.parryScore * 0.58 + upward * 0.42;
+
+      const slashThreshold = Number(slashSense.value);
+      const parryThreshold = Number(parrySense.value);
+      detector.slashStreak = slashGesture && detector.slashScore > slashThreshold ? detector.slashStreak + 1 : 0;
+      detector.parryStreak = detector.parryScore > parryThreshold ? detector.parryStreak + 1 : 0;
+
+      if (!detector.slashArmed && detector.slashScore < slashThreshold * 0.42) detector.slashArmed = true;
+      if (!detector.parryArmed && detector.parryScore < parryThreshold * 0.42) detector.parryArmed = true;
+
+      if (detector.slashArmed && detector.slashStreak >= 2) {
+        detector.slashArmed = false;
+        detector.slashStreak = 0;
+        doSlash();
+      }
+      if (detector.parryArmed && detector.parryStreak >= 1) {
+        detector.parryArmed = false;
+        detector.parryStreak = 0;
+        doParry();
+      }
+    }
+
+    function renderMotionMeters() {
+      const slashThreshold = Number(slashSense.value);
+      const parryThreshold = Number(parrySense.value);
+      const slashPercent = clamp(detector.slashScore / slashThreshold, 0, 1.35);
+      const parryPercent = clamp(detector.parryScore / parryThreshold, 0, 1.35);
+      ui.slashValue.textContent = Math.round(detector.slashScore);
+      ui.parryValue.textContent = Math.round(detector.parryScore);
+      ui.slashFill.style.width = `${Math.min(slashPercent, 1) * 100}%`;
+      ui.parryFill.style.width = `${Math.min(parryPercent, 1) * 100}%`;
+    }
+
+    function loop() {
+      sampleMotion();
+      updateAttack(now());
+      renderMotionMeters();
+      requestAnimationFrame(loop);
+    }
+
+    async function ensureCamera() {
+      if (video.srcObject) return true;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 960 },
+            height: { ideal: 720 },
+            facingMode: "user"
+          },
+          audio: false
+        });
+        video.srcObject = stream;
+        await video.play();
+        cameraHint.textContent = "감지 중: 양팔이 화면에 보이게 서 주세요.";
+        return true;
+      } catch (error) {
+        cameraHint.textContent = "카메라 권한을 얻지 못했습니다.";
+        setLog(`카메라 오류: ${error.message}`);
+        return false;
+      }
+    }
+
+    async function startGame() {
+      if (game.finished || game.hp <= 0 || game.bossHp <= 0) resetGame();
+      const ok = await ensureCamera();
+      if (!ok) return;
+      game.running = true;
+      game.finished = false;
+      game.nextAttackAt = now() + 1600;
+      startBtn.textContent = "전투 중";
+      setLog("전투 시작. 팔을 옆으로 휘둘러 보스를 공격하세요.");
+      renderHud();
+    }
+
+    [slashSense, parrySense, speed].forEach((input) => {
+      input.addEventListener("input", updateRangeLabels);
+    });
+    startBtn.addEventListener("click", startGame);
+    resetBtn.addEventListener("click", resetGame);
+    window.addEventListener("keydown", (event) => {
+      if (event.code === "Space") doSlash();
+      if (event.code === "ArrowUp") doParry();
+    });
+
+    /* ---------- 게임 센터 연결 ----------
+       폰은 리모컨 역할: A 전투 시작, 끝나면 폰에서 이름을 적어 기록 등록 */
+    const SETUP_KEY = "bossparry_setup";
+    function saveSetup() {
+      try { localStorage.setItem(SETUP_KEY, JSON.stringify({ slash: slashSense.value, parry: parrySense.value, speed: speed.value })); } catch (e) {}
+    }
+    function restoreSetup() {
+      let d = null;
+      try { d = JSON.parse(localStorage.getItem(SETUP_KEY) || "null"); } catch (e) {}
+      if (!d) return;
+      if (d.slash) slashSense.value = d.slash;
+      if (d.parry) parrySense.value = d.parry;
+      if (d.speed) speed.value = d.speed;
+    }
+    [slashSense, parrySense, speed].forEach((input) => input.addEventListener("change", saveSetup));
+
+    let recorded = false;
+    Hub.on("button", (b) => {
+      if (!b.down) return;
+      if (b.key === "A" && !game.running) { recorded = false; startGame(); }
+      else if (b.key === "B" && game.finished) { recorded = true; resetGame(); }
+    });
+    Hub.on("form", (d) => {
+      if (!game.finished || recorded) return;
+      Hub.submitScore({ name: (d.values.name || "").trim() || "익명", score: game.score, clear: game.bossHp <= 0 });
+      recorded = true;
+      setLog("기록을 등록했습니다. 폰에서 A를 누르면 다시 도전합니다.");
+    });
+    Hub.on("formSkip", () => { recorded = true; });
+    Hub.on("activity", () => {});
+
+    // 상태가 바뀔 때마다 폰 안내를 맞춰줌
+    let padKey = "";
+    setInterval(() => {
+      if (game.running) Hub.activity();
+      const key = `${game.running}|${game.finished}|${recorded}`;
+      if (key === padKey) return;
+      padKey = key;
+      if (game.finished && !recorded) {
+        Hub.setPad("form", {
+          title: game.bossHp <= 0 ? "클리어! 기록을 남기시겠어요?" : "게임 오버. 기록을 남기시겠어요?",
+          big: game.score.toLocaleString(),
+          hint: game.bossHp <= 0 ? `남은 체력 ${game.hp}칸으로 보스를 쓰러뜨렸습니다.` : `보스 체력을 ${game.bossHp}까지 깎았습니다.`,
+          fields: [{ id: "name", label: "학번 이름", maxlength: 10 }],
+          submit: "기록 등록", skip: "등록 없이 넘어가기"
+        });
+      } else if (game.running) {
+        Hub.setPad("camera", { title: "전투 중", hint: "팔을 옆으로 크게 휘두르면 공격, 화면에 PARRY가 뜨면 팔을 위로 흔들어 막으세요." });
+      } else {
+        Hub.setPad("camera", { title: "보스 패링", hint: game.finished
+          ? "A를 누르면 다시 도전합니다."
+          : "상반신과 양팔이 카메라에 보이게 서세요. A를 누르면 전투가 시작됩니다." });
+      }
+    }, 200);
+
+    restoreSetup();
+    updateRangeLabels();
+    resetGame();
+    loop();
+    // 게임을 열자마자 카메라를 켜두고 준비 신호를 보냄
+    ensureCamera().then((ok) => {
+      if (ok) setLog("준비 완료. 폰에서 A를 누르면 전투가 시작됩니다.");
+      Hub.ready();
+    });
+  </script>
+</body>
+</html>
